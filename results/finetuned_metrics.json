@@ -1,0 +1,7 @@
+{
+  "accuracy_finetuned": 62.6,
+  "accuracy_text_only": 51.0,
+  "visual_gap": 11.6,
+  "zero_shot_accuracy": 63.5,
+  "improvement": -0.9
+}

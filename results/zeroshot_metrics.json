@@ -1,0 +1,8 @@
+{
+  "model": "LLaVA-1.5-7B (zero-shot, float16)",
+  "accuracy_with_image": 63.5,
+  "accuracy_text_only": 56.0,
+  "visual_grounding_gap": 7.5,
+  "samples_with_image": 200,
+  "samples_text_only": 100
+}

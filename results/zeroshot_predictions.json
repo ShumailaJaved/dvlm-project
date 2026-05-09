@@ -1,0 +1,1402 @@
+[
+  {
+    "id": "scienceqa_test_1",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_2",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_5",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_9",
+    "gt": "B",
+    "pred": "D",
+    "correct": false,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_10",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_13",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_14",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_15",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_16",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_17",
+    "gt": "B",
+    "pred": "C",
+    "correct": false,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_18",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_19",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_21",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_23",
+    "gt": "D",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_24",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_29",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_34",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_35",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_36",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_39",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_42",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_43",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_45",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_49",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_50",
+    "gt": "D",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_55",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_56",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_59",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_63",
+    "gt": "A",
+    "pred": "D",
+    "correct": false,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_64",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_65",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_67",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_69",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_70",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_73",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_75",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_76",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_78",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_79",
+    "gt": "C",
+    "pred": "B",
+    "correct": false,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_80",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_84",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_85",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_87",
+    "gt": "D",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_88",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_90",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_92",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_94",
+    "gt": "B",
+    "pred": "C",
+    "correct": false,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_97",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_104",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_105",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_107",
+    "gt": "A",
+    "pred": "B",
+    "correct": false,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_108",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_109",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_110",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_114",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_116",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_123",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_124",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_125",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_128",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_129",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_130",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_136",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_137",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_138",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_140",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_141",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_142",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_144",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_145",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_147",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_148",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_150",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_151",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_153",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_154",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_155",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_156",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_157",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_160",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_161",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_162",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_167",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_168",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_171",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_172",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_174",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_177",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_180",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_181",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_182",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_184",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_185",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_192",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_194",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_197",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_198",
+    "gt": "B",
+    "pred": "C",
+    "correct": false,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_202",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_207",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_208",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_210",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_211",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_212",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_213",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_214",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_216",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_217",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_219",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_230",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_234",
+    "gt": "C",
+    "pred": "B",
+    "correct": false,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_236",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_238",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_241",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_243",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_247",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_248",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_249",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_250",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_251",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_252",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_253",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_256",
+    "gt": "A",
+    "pred": "B",
+    "correct": false,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_257",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_258",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_260",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_261",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_263",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_264",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_267",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_268",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_269",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_270",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_272",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_274",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_279",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_283",
+    "gt": "A",
+    "pred": "D",
+    "correct": false,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_284",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_285",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_286",
+    "gt": "B",
+    "pred": "C",
+    "correct": false,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_289",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_291",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_293",
+    "gt": "B",
+    "pred": "C",
+    "correct": false,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_295",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_303",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_305",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_306",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_307",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_314",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_315",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_316",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_319",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_321",
+    "gt": "A",
+    "pred": "D",
+    "correct": false,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_322",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_333",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_335",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_337",
+    "gt": "A",
+    "pred": "D",
+    "correct": false,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_340",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_341",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_342",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_343",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_344",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_347",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_349",
+    "gt": "C",
+    "pred": "D",
+    "correct": false,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_354",
+    "gt": "D",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_356",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_357",
+    "gt": "C",
+    "pred": "D",
+    "correct": false,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_358",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_361",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_362",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_364",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_365",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_368",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_369",
+    "gt": "B",
+    "pred": "C",
+    "correct": false,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_371",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_372",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_378",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_379",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_381",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_382",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_384",
+    "gt": "D",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_388",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_389",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_390",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_391",
+    "gt": "C",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_392",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_393",
+    "gt": "D",
+    "pred": "D",
+    "correct": true,
+    "response": "D"
+  },
+  {
+    "id": "scienceqa_test_395",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_397",
+    "gt": "C",
+    "pred": "C",
+    "correct": true,
+    "response": "C"
+  },
+  {
+    "id": "scienceqa_test_398",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_400",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_402",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_403",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_405",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_407",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_408",
+    "gt": "A",
+    "pred": "B",
+    "correct": false,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_411",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_418",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_421",
+    "gt": "B",
+    "pred": "A",
+    "correct": false,
+    "response": "A"
+  },
+  {
+    "id": "scienceqa_test_422",
+    "gt": "B",
+    "pred": "B",
+    "correct": true,
+    "response": "B"
+  },
+  {
+    "id": "scienceqa_test_424",
+    "gt": "A",
+    "pred": "A",
+    "correct": true,
+    "response": "A"
+  }
+]
