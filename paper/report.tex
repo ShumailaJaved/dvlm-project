@@ -189,18 +189,18 @@ Expert 4 ($E_4$) is our proposed \emph{Question-Conditioned Gating Projector} (Q
 Here, $\sigma$ denotes the Sigmoid activation function, and $\alpha_i W_g$ represents scalar-vector multiplication. This expansion allows the model to learn dimension-specific suppression strategies while maintaining spatial equivariance across the $N$ patches. Finally, $W_{E_4} \in \mathbb{R}^{d \times d_v}$ projects the modulated visual features into the LLM embedding space. Like $E_1$, QCGP preserves full spatial resolution ($L_4 = N$), but acts as a dynamic information filter that suppresses query-irrelevant content.
 
 Selection among these four connectors is governed by a lightweight two-layer router that takes the question vector $\mathbf{q}$ as input and produces a four-way probability distribution over the experts
-\begin{equation*}
+\begin{equation}
   \mathbf{r} = \mathrm{softmax}\!\left(
     W_r^{(2)}\,\sigma\!\left(W_r^{(1)}\mathbf{q}\right)
   \right) \in \mathbb{R}^4,
-  \qquad k^* = \arg\max_k r_k.
+  \qquad k^* = \arg\max_k r_k,
   \label{eq:router}
-\end{equation*}
-At inference, the top-1 expert $\phi_{k^*}$ exclusively processes the patch sequence. During training, a straight-through estimator allows gradients to bypass the discrete $\arg\max$ operation. To prevent a degenerate routing distribution where a single expert monopolizes all inputs, we train the router with an auxiliary load-balancing loss
-\begin{equation*}
+\end{equation}
+where $W_r^{(1)} \in \mathbb{R}^{d_r \times d}$ and $W_r^{(2)} \in \mathbb{R}^{4 \times d_r}$ are the two weight matrices of the router MLP, and $\sigma$ denotes GELU. At inference, the top-1 expert $\phi_{k^*}$ exclusively processes the patch sequence. During training, a straight-through estimator allows gradients to bypass the discrete $\arg\max$ operation. To prevent a degenerate routing distribution where a single expert monopolizes all inputs, we train the router with an auxiliary load-balancing loss \citep{fedus2022switch}
+\begin{equation}
   \mathcal{L}_{\mathrm{lb}} \;=\; K\sum_{k=1}^{K} f_k \cdot p_k,
   \label{eq:lb_loss}
-\end{equation*}
+\end{equation}
 where $f_k$ is the fraction of batch tokens dispatched to expert $k$ and $p_k$ is the mean router probability for expert $k$.
 
 \section{Experimental Design}
