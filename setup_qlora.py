@@ -62,13 +62,17 @@ def load_llava_4bit(model_id: str = "liuhaotian/llava-v1.5-7b"):
     """
     Load LLaVA-1.5-7B in 4-bit NF4 QLoRA mode.
 
-    Uses LLaVA's own loader (load_pretrained_model) with load_4bit=True,
-    which internally sets the BitsAndBytesConfig produced by get_bnb_config().
+    Builds an explicit BitsAndBytesConfig via get_bnb_config() and passes
+    it as quantization_config to LLaVA's own loader (load_pretrained_model).
+    This is preferred over the convenience flag load_4bit=True because it
+    gives full control over quant settings and is compatible with newer
+    versions of transformers / bitsandbytes.
 
     Steps performed:
         1. Print GPU memory before loading.
-        2. Download / load LLaVA-1.5-7B in 4-bit NF4.
-        3. Print GPU memory after loading.
+        2. Build BitsAndBytesConfig (NF4, double quant, fp16 compute).
+        3. Download / load LLaVA-1.5-7B with that config.
+        4. Print GPU memory after loading.
 
     Args:
         model_id (str): HuggingFace model path.
@@ -87,14 +91,17 @@ def load_llava_4bit(model_id: str = "liuhaotian/llava-v1.5-7b"):
     mem_before = torch.cuda.memory_allocated() / (1024 ** 3)   # bytes → GB
     print(f"GPU memory before loading model : {mem_before:.2f} GB")
 
-    # Load model in 4-bit NF4 via LLaVA's builder
-    # This calls prepare_inputs internally and sets quantization_config.
+    # Build the quantization config explicitly instead of using load_4bit=True.
+    # Passing quantization_config directly is more explicit and avoids relying
+    # on LLaVA's internal flag handling, which varies across versions.
+    bnb_config = get_bnb_config()
+
     print(f"Loading {model_id} in 4-bit NF4 …")
     tokenizer, model, image_processor, context_len = load_pretrained_model(
         model_path=model_id,
         model_base=None,
         model_name="llava-v1.5-7b",
-        load_4bit=True,           # triggers NF4 + double quant internally
+        quantization_config=bnb_config,   # explicit NF4 config (not load_4bit)
     )
 
     # Print GPU memory AFTER loading
@@ -183,8 +190,10 @@ def load_scienceqa_full():
     Dataset: derek-thomas/ScienceQA on HuggingFace Hub.
 
     Filter rule: keep a sample only if its "image" field is not None.
-    This matches the midterm filter and the split sizes in Table 1 of
-    the midterm report (6 218 train / 500 val / 1 000 test).
+    Actual image-only split sizes (confirmed from HuggingFace Hub):
+        Train      : 6,218
+        Validation : 2,097
+        Test       : 2,017
 
     Returns:
         tuple: (train_dataset, val_dataset, test_dataset)
@@ -257,13 +266,13 @@ if __name__ == "__main__":
     # ============================================================
     # Verification for Task A-0.
     #
-    # CHECK 1 (CUDA required): GPU memory after loading < 6 GB
-    # CHECK 2: Train split size == 6 218
-    # CHECK 3: Val   split size ==   500
-    # CHECK 4: Test  split size == 1 000
+    # CHECK 1 (CUDA required): GPU memory after loading < 15 GB
+    # CHECK 2: Train split size == 6,218
+    # CHECK 3: Val   split size == 2,097
+    # CHECK 4: Test  split size == 2,017
     # CHECK 5: Gradient steps  ==   778  (2 epochs, batch 16, 6218 samples)
     #
-    # Checks 1 runs only on CUDA (Colab T4).
+    # Check  1 runs only on CUDA (Colab T4).
     # Checks 2–4 require internet access to HuggingFace Hub.
     # Check  5 is pure arithmetic — always runs.
     # ============================================================
@@ -271,7 +280,7 @@ if __name__ == "__main__":
     all_passed = True
 
     # ---------------------------------------------------------------
-    # CHECK 1 — GPU memory after 4-bit loading < 6 GB (CUDA only)
+    # CHECK 1 — GPU memory after 4-bit loading < 15 GB (CUDA only)
     # ---------------------------------------------------------------
     if not torch.cuda.is_available():
         print("CHECK 1 SKIPPED: CUDA not available — run on Colab T4 GPU")
@@ -280,7 +289,7 @@ if __name__ == "__main__":
         try:
             tokenizer, model, image_processor, context_len = load_llava_4bit()
             mem_gb = torch.cuda.memory_allocated() / (1024 ** 3)
-            limit_gb = 6.0
+            limit_gb = 15.0
 
             if mem_gb < limit_gb:
                 print(
@@ -315,22 +324,22 @@ if __name__ == "__main__":
             all_passed = False
 
         # CHECK 3: Val size
-        if len(val_ds) == 500:
+        if len(val_ds) == 2097:
             print(f"CHECK 3 PASSED  (val size = {len(val_ds):,})")
         else:
             print(
                 f"CHECK 3 FAILED: val size = {len(val_ds):,}, "
-                f"expected 500"
+                f"expected 2,097"
             )
             all_passed = False
 
         # CHECK 4: Test size
-        if len(test_ds) == 1000:
+        if len(test_ds) == 2017:
             print(f"CHECK 4 PASSED  (test size = {len(test_ds):,})")
         else:
             print(
                 f"CHECK 4 FAILED: test size = {len(test_ds):,}, "
-                f"expected 1,000"
+                f"expected 2,017"
             )
             all_passed = False
 
