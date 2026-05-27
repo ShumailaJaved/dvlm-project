@@ -20,7 +20,8 @@
 #   from connector.moc import build_moc, upgrade_to_moc, MixtureOfConnectors
 #
 #   tokenizer, model, image_processor, _ = load_pretrained_model(
-#       "liuhaotian/llava-v1.5-7b", None, "llava-v1.5-7b", load_4bit=True)
+#       "liuhaotian/llava-v1.5-7b", None, "llava-v1.5-7b",
+#       quantization_config=bnb_config)   # see setup_qlora.get_bnb_config()
 #   model = upgrade_to_moc(model)
 #   moc   = build_moc(model, device=device)
 #   model.set_moc(moc)
@@ -261,7 +262,7 @@ if _try_import_llava():
                 (None, position_ids, attention_mask, past_key_values,
                  new_input_embeds, new_labels) — same as parent
             """
-            vision_tower = self.get_vision_tower()
+            vision_tower = self.model.vision_tower
 
             # ---- Fallback conditions ----------------------------------------
             if (self.moc is None
@@ -319,7 +320,7 @@ if _try_import_llava():
                 # We don't need gradient through embed_tokens because those
                 # weights are frozen (quantized base). Gradient will still
                 # flow through the QuestionPooler's q_pool parameter.
-                U = self.get_model().embed_tokens(text_ids)   # (T, d)
+                U = self.model.embed_tokens(text_ids)   # (T, d)
 
                 # ---- Route through MoC to get visual tokens V ---------------
                 Z_V     = Z_V_batch[batch_idx]    # (576, 1024)
@@ -330,7 +331,7 @@ if _try_import_llava():
                 # ---- Handle case with no image token (text-only sample) -----
                 num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
                 if num_images == 0:
-                    cur_embeds = self.get_model().embed_tokens(cur_input_ids)
+                    cur_embeds = self.model.embed_tokens(cur_input_ids)
                     new_input_embeds.append(cur_embeds)
                     new_labels_list.append(labels_list[batch_idx])
                     continue
@@ -355,7 +356,7 @@ if _try_import_llava():
 
                 # Embed all text tokens at once, then split back
                 split_sizes       = [x.shape[0] for x in cur_labels_noim]
-                cur_embeds_all    = self.get_model().embed_tokens(
+                cur_embeds_all    = self.model.embed_tokens(
                     torch.cat(cur_input_ids_noim))
                 cur_embeds_splits = torch.split(cur_embeds_all, split_sizes, dim=0)
 
@@ -479,6 +480,7 @@ def upgrade_to_moc(model) -> "MoCLlavaForCausalLM":
     model.__class__               = MoCLlavaForCausalLM
     model.moc                     = None
     model._last_router_outputs    = []
+    model.model                   = model.model   # ensure .model attribute is preserved
     return model
 
 
