@@ -1,0 +1,233 @@
+\documentclass{article}
+% \usepackage[preprint]{neurips_2024}
+\usepackage[final]{neurips_2024}
+% \usepackage[nonatbib]{neurips_2024}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+
+\title{AI-623 Deep Vision Language Models \\ Project Report Template}
+
+
+\author{%
+  Member 1 \\
+  Department of Artificial Intelligence\\
+  Lahore University of Management Sciences \\
+  \texttt{member1@email.com} \\
+  \And
+  Member 2 \\
+  Department of Artificial Intelligence\\
+  Lahore University of Management Sciences \\
+  \texttt{member2@email.com} \\
+  % examples of more authors
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \AND
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+  % \And
+  % Coauthor \\
+  % Affiliation \\
+  % Address \\
+  % \texttt{email} \\
+}
+
+
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract}
+  Write a concise abstract (200--250 words, one paragraph) that summarizes the problem you are addressing, your proposed approach, and the key results or insights from your work. The abstract should capture the reader's attention and convey the significance of your contribution.
+
+  For the \textbf{midterm report}, the abstract may describe expected findings and the current state of your work. For the \textbf{final report}, update this section to reflect actual results, conclusions, and contributions.
+
+  \textcolor{red}{Note: Your paper should \textbf{not} exceed nine pages total (before references).}
+\end{abstract}
+
+\noindent\textbf{Important note for the midterm report:} The midterm submission should be treated as an early but serious draft of the final paper, not as a short progress note. It should already read like a coherent research report covering all substantive work completed so far.
+
+\noindent\textbf{Midterm-specific expectation:} In addition to reporting your current results, clearly state the main challenges, limitations, or negative findings encountered so far, and conclude with a concrete plan for the remaining work needed to complete the final report.
+
+\section{Introduction}
+The introduction serves to engage the reader by presenting the context, significance, and purpose of your project. It should be written in flowing paragraph form. Your introduction should address the following:
+
+\begin{enumerate}
+
+\item\textbf{Define the Problem:} Introduce the problem you are addressing. Explain what it is, why it is important, and why it deserves attention. Provide enough background for the reader to understand the significance of your work.
+
+\item\textbf{Develop a Narrative:} Build a narrative similar to what you would find in a research paper. Briefly survey related work, previous approaches, or ongoing challenges in this area, laying the groundwork for your project's motivations. This does not need to be exhaustive but should establish context for why this problem matters and where your project fits in the larger picture.
+
+\item\textbf{Project Goals and Scope:} Clearly state what you aim to achieve. Describe your objectives, including any specific research questions or hypotheses you are exploring.
+
+\item\textbf{Overview of Methodology and Outcomes:} At a high level, outline the methods or approach you are using. Summarize preliminary results (for the midterm) or final findings (for the final report), and explain how they contribute to addressing the problem.
+\end{enumerate}
+
+\textbf{For the final report,} revise the introduction to reflect what you actually accomplished. Describe any shifts in objectives or methods, provide a concise summary of results, and ensure the introduction guides the reader naturally to the rest of the document, highlighting the main contributions of your project.
+
+\textcolor{red}{Note: While the above pointers help structure your thinking, your actual introduction must flow smoothly in paragraph form---do NOT use subsections, bullet points, or numbered lists.}
+
+\section{Related Work (Mandatory for the midterm report)}
+
+The Related Work section provides the foundation of your project by surveying prior research and establishing context for your contributions. This section is \textbf{mandatory for the midterm report} and should be refined for the final report. Include the following elements:
+
+\begin{itemize}
+    \item \textbf{Contextual Overview:} Begin by giving an overview of the main areas of research that relate to your project. Identify key studies, approaches, and findings that are relevant to your work, building a clear picture of the current landscape.
+
+    \item \textbf{Detailed Survey and Synthesis:} Delve deeper into individual studies or categories of research that are especially pertinent to your project. Compare and contrast different approaches, methods, and outcomes. Summarize each work concisely but with enough detail to demonstrate a clear understanding of its contributions.
+
+    \item \textbf{Identify Shortcomings and Gaps:} A strong Related Work section does not merely list existing studies; it also critiques them. Highlight limitations in previous research, such as:
+    \begin{itemize}
+        \item \textbf{Overly Simplistic Designs:} Works that use oversimplified models or methods failing to capture important complexities.
+        \item \textbf{Outdated Relevance:} Studies relying on outdated data, models, or assumptions that no longer reflect recent advancements.
+        \item \textbf{Questionable Assumptions:} Works making assumptions that limit applicability or generalizability.
+        \item \textbf{Technical or Methodological Limitations:} Studies with limitations such as smaller datasets, lower-performing models, or inadequate evaluation metrics.
+    \end{itemize}
+
+    \item \textbf{Establishing the Need for Your Project:} Through this critique, position your project within the context of these limitations. Show where your work addresses specific gaps, demonstrating why it is a relevant and valuable addition to the field.
+
+    \item \textbf{Readability and References:} Ensure the section is readable, logically structured, and well-cited. Avoid overwhelming the reader with excessive detail; aim to create a digestible narrative. Use references liberally, giving credit to foundational works. Ideally, keep this section around one page. Cite everything, e.g.\ ``This work utilized the Transformer architecture \citep{vaswani2023attentionneed} ...'' and put all your citations in the attached \texttt{ref.bib} file.
+\end{itemize}
+
+In summary, a well-written Related Work section should contextualize your project and highlight how it builds on or diverges from existing studies, setting the stage for the contributions your work aims to make.
+
+\textcolor{red}{Do not use bullet points or numbered lists to structure your related work in the actual report---write it in paragraph form. The pointers above are guidelines only.}
+
+\section{Methodology (Mandatory for the midterm report)}
+
+This section provides a detailed explanation of the methods and techniques used in your project. The goal is to enable readers to understand and, if needed, replicate your approach. This section is \textbf{mandatory for the midterm report}. Include the following elements:
+
+\begin{itemize}
+    \item \textbf{Description of Approach:} Begin by outlining the main approach you are taking to address the problem. Specify the model architecture, algorithm, framework, or new loss function. Provide a clear description that gives readers a high-level view of your chosen methodology before delving into details.
+
+    \item \textbf{Techniques and Procedures:} Describe the specific techniques that are integral to your project. This is the core of your approach---for example, how you assign weights to loss terms from multiple teachers in a Knowledge Distillation setting, how you perform aggregation in a Federated Learning scenario, or whatever the essence of your contribution is depending on the problem setup.
+
+    \item \textbf{Implementation Details:} Provide a summary of the implementation specifics, including hyperparameters, formulations of any new loss functions, algorithms, etc. Lay out the framework for ablative studies you plan to conduct (details and results can be left for the Results section or Appendix).
+
+    \item \textbf{Conceptual Rationale:} Briefly explain why you selected this methodology over alternative approaches. Highlight any unique aspects or advantages of your method that are particularly suited to the problem at hand.
+
+    \item \textbf{Figures and Diagrams:} Where appropriate, include figures or diagrams to visually represent your methodology, with clear captions explaining their relevance. For instance:
+    \begin{itemize}
+        \item \textbf{Model Architecture Diagrams:} An overview of the model architecture highlighting important layers, components, or data flow.
+        \item \textbf{Data Processing Workflow:} A flowchart or pipeline diagram illustrating preprocessing steps and their rationale.
+    \end{itemize}
+\end{itemize}
+
+\textbf{For the final report:} Update this section if any modifications were made to the methodology during the project (e.g.\ revised hyperparameters, alternative processing techniques, or additional architectural changes). Do not discuss results here---those belong in the Results and Findings section.
+
+
+\section{Experimental Design (Mandatory for the midterm report)}
+
+This section outlines the experimental framework used to evaluate your methodology. It is \textbf{mandatory for the midterm report}. The goal is to provide enough detail for readers to understand the setup, metrics, and rationale behind your evaluation. Include the following:
+
+\begin{itemize}
+    \item \textbf{Research Questions or Hypotheses:} Clearly state the research questions or hypotheses your experiments aim to address. These should align with your project objectives and motivate specific experiments.
+
+    \item \textbf{Experimental Setup:} Describe the setup used for training and evaluation:
+    \begin{itemize}
+        \item \textbf{Datasets:} List the datasets used, including preprocessing steps. Provide a brief description of each dataset's relevance and any data splits (training, validation, test) along with their proportions.
+        \item \textbf{Evaluation Metrics:} Define the performance metrics used to assess your model (e.g., accuracy, F1 score, FID, CLIP score, BLEU). Explain why these metrics are appropriate.
+        \item \textbf{Baseline Comparisons:} Specify baseline models or alternative approaches you compare against, and why they serve as relevant points of comparison.
+    \end{itemize}
+
+    \item \textbf{Parameter Tuning and Variants:} Describe any variations in hyperparameters or model configurations tested (e.g., different learning rates, architectures, data augmentation techniques).
+
+    \item \textbf{Plan for Analysis:} Outline how you intend to analyze and interpret the results. This might include comparisons across models, evaluations of performance trends, or statistical tests.
+\end{itemize}
+
+\textbf{For the final report:} Ensure this section reflects the finalized experimental design, including any adjustments made during the project. Focus on describing the experimental structure clearly---do not report results here.
+
+\section{Results and Findings (Baseline replication results mandatory for the midterm report)}
+
+The Results and Findings section presents the outcomes of your experiments and provides analysis to answer your research questions. For the \textbf{midterm report}, baseline replication results are mandatory. For the \textbf{final report}, this section should be comprehensive and polished. Include the following:
+
+\begin{itemize}
+    \item \textbf{Summary of Key Results:} Begin with a concise summary of the main results, emphasizing how well your approach performed relative to baselines or prior methods. State whether the results met expectations, exceeded them, or highlighted new challenges.
+
+    \item \textbf{Structured Presentation of Results:} Present results in a structured way using tables and plots:
+    \begin{itemize}
+        \item \textbf{Tables:} Use tables to present quantitative results (metric scores across different models, configurations, or datasets). Ensure each table has a clear caption and column labels.
+        \item \textbf{Plots:} Visualize data trends with plots (line charts, bar charts) where appropriate---especially for showing performance improvements, sensitivity to hyperparameters, or comparative results.
+    \end{itemize}
+    \textit{Note:} A well-organized Results section is critical. A convoluted or unstructured presentation will heavily impact the quality of the report overall.
+
+    \item \textbf{Detailed Analysis:} Go beyond simply reporting outcomes. Include analysis that provides deeper insights:
+    \begin{itemize}
+        \item \textbf{Model Internals and Component Efficacy:} Examine model internals (e.g., attention maps, learned representations) or analyze specific components of your approach.
+        \item \textbf{Ablation Studies:} Investigate how each component of your methodology contributed to overall performance.
+    \end{itemize}
+
+    \item \textbf{Additional Research Questions:} Formulate and answer additional research questions based on your findings (e.g., ``How does performance vary under different data conditions?'' or ``What are the limits of the model's generalization?''). Conduct targeted experiments to address these questions.
+
+    \item \textbf{Insights and Implications:} Discuss the broader implications of your findings. Highlight surprising results, limitations, or areas for future exploration.
+\end{itemize}
+
+\textbf{For the midterm report:} This section should also make clear what has \emph{not} worked yet, what limitations or obstacles remain, and what concrete steps you will take next. End the midterm write-up with a specific and realistic plan for the remaining work so that the path to the final report is clear.
+
+\textbf{For the final report:} This section should be a polished and cohesive summary of all key findings. Prioritize clarity and readability.
+
+\section{Discussion}
+
+The Discussion section reflects on the implications of the findings, addresses limitations, and suggests potential directions for future work. This section is \textbf{required for the final report}. Key elements:
+
+\begin{itemize}
+    \item \textbf{Interpretation of Key Findings:} Summarize the primary insights from the results, focusing on their broader significance within the context of the research problem. Discuss how these findings contribute to advancing knowledge or addressing gaps highlighted in prior work.
+
+    \item \textbf{Strengths and Contributions:} Highlight the most valuable aspects of your project, including specific achievements or unique insights gained.
+
+    \item \textbf{Limitations:} Address limitations of the project, such as computational restrictions, data constraints, or assumptions that might limit generalizability. Discussing limitations shows critical reflection and contextualizes the findings accurately.
+
+    \item \textbf{Future Work:} Suggest specific avenues for future research inspired by the results or limitations. Outline possible experiments, improvements, or new research questions that could extend the impact of this work.
+
+    \item \textbf{Broader Implications:} Conclude with any broader implications of your findings, such as potential applications, ethical considerations, or societal impact.
+\end{itemize}
+
+\section{Conclusion}
+
+The Conclusion should succinctly summarize the project's goals, contributions, and outcomes. This section is \textbf{required for the final report}.
+
+\begin{itemize}
+    \item Summarize the achieved goals and main outcomes.
+    \item Highlight key contributions and insights gained, noting their importance to the field.
+    \item End with a brief reflection on the broader implications or future directions inspired by your results.
+\end{itemize}
+
+\textit{Note:} Keep the Conclusion concise, focusing on the project's essence and main takeaways. Ensure this section clearly encapsulates the project's significance and contributions.
+
+\bibliographystyle{plainnat}
+\bibliography{ref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\appendix
+
+\section{Appendix}
+
+The Appendix is for supplementary material that supports the main text but is not essential to its primary narrative. Examples of content suitable for the Appendix include extended mathematical derivations, large tables or datasets, detailed experimental configurations, or code snippets. For instance, if you used a specific system prompt for a language model, you might briefly mention it in the main text and include the full prompt in the Appendix for reference.
+
+Critical details necessary to understand or replicate the work should remain in the main text. Think of the Appendix as a place for additional clarification rather than a repository for essential explanations.
+
+You may create multiple appendices if needed, organizing them with descriptive names as proper sections. Ensure each appendix is well-structured and that you reference its relevance in the main text.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

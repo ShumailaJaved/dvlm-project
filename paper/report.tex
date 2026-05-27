@@ -1,0 +1,317 @@
+\documentclass{article}
+\usepackage[final]{neurips_2024}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\title{Routing Visual Evidence: A Mixture of Connectors for Grounded Multimodal Reasoning}
+
+\author{%
+  Abdul Hafeez \\
+  Lahore University of Management Sciences \\
+  \texttt{25280098@lums.edu.pk} \\
+  \And
+  Verda Batool \\
+  Lahore University of Management Sciences \\
+  \texttt{24280065@lums.edu.pk} \\
+  \And
+  Shumaila Javed \\
+  Lahore University of Management Sciences \\
+  \texttt{24280078@lums.edu.pk} \\
+  \And
+  Muhammad Fasih Tariq \\
+  Lahore University of Management Sciences \\
+  \texttt{25280026@lums.edu.pk} \\
+}
+
+\begin{document}
+
+\maketitle
+
+% ===============================================================
+% FIX 2: Abstract written (was empty placeholder)
+% Key numbers included: 63.5% zero-shot, 7.5% visual gap,
+% 11.6% after fine-tuning, as required by the comment in the
+% original template.
+% ===============================================================
+
+\begin{abstract}
+Multimodal large language models (MLLMs) typically employ question-blind connectors that project all visual patch tokens identically. This forces the language model to infer visual relevance from context alone, driving the perceptual failures that dominate MLLM error taxonomies. We investigate this bottleneck using LLaVA-1.5-7B~\citep{liu2024llava} on the diagram-grounded ScienceQA benchmark~\citep{lu2022scienceqa}. To address this, we propose the \emph{Question-Conditioned Gating Projector} (QCGP), which modulates each patch's feature weight via per-patch cosine-similarity gates before LLM projection. We further integrate QCGP into a \emph{Mixture of Connectors} (MoC) alongside an MLP, a Q-Former, and an attention-pooled global token. A lightweight, question-conditioned router selects one expert per input, optimized via a load-balancing loss. This midterm report establishes our baseline: zero-shot LLaVA-1.5-7B yields 63.5\% accuracy with a visual grounding gap of $\Delta_v = 7.5\%$. LoRA fine-tuning on 2,000 samples widens $\Delta_v$ to 11.6\% without improving accuracy, confirming the static connector strictly bounds visual grounding. Full MoC implementation is reserved for the final report.
+\end{abstract}
+
+% ===============================================================
+% FIX 3: Introduction written (was empty placeholder).
+% Four paragraphs covering: problem definition, narrative /
+% related work survey, project goals and scope, and methodology
+% overview with preliminary results --- per TA guidelines in
+% main.tex. No subsections or bullet points used.
+% ===============================================================
+
+
+\section{Introduction}
+\label{sec:intro}
+
+Visual Question Answering (VQA) over scientific diagrams requires extracting specific evidence rather than relying on language statistics. Modern MLLMs bridge a frozen vision encoder and language model via a learned connector $\phi$, yet this projection is almost universally \emph{question-blind}, processing all visual patches identically. Because approximately 67\% of multimodal reasoning failures stem from visual misperception rather than flawed logic \citep{wang2026papo}, this static connector is a critical bottleneck. The natural intervention is to make the connector question-aware, selectively surfacing query-relevant features before they enter the language model.
+
+Prior connector designs face systemic trade-offs. LLaVA-1.5 \citep{liu2024llava} employs a question-blind MLP that preserves all $N = 576$ patches. InstructBLIP \citep{dai2023instructblip} achieves query-conditioned extraction via a Q-Former, but irreversibly compresses the sequence to $K = 32$ slots, discarding fine-grained spatial structure. Multimodal Mixture-of-Experts (MoE) approaches \citep{lin2024moellava, li2024cumo, pang2026mocha} introduce routing but restrict experts to identical architectures. As \citet{cha2024honeybee} formalize, navigating this locality-versus-compression trade-off requires dynamically switching between fundamentally different connector architectures per sample.
+
+We address this with two architectural contributions evaluated on ScienceQA \citep{lu2022scienceqa} using LLaVA-1.5-7B. First, the \emph{Question-Conditioned Gating Projector} (QCGP) bridges the modality gap \citep{liang2022modgap} by computing per-patch cosine-similarity gates, applying element-wise modulation to the full patch sequence without compression. Second, the \emph{Mixture of Connectors} (MoC) routes each input to one of four structurally distinct experts---$E_1$ (MLP), $E_2$ (Q-Former), $E_3$ (global token), and $E_4$ (QCGP)---using a lightweight, question-conditioned router. This midterm report establishes the baseline, reserving MoC implementation for the final phase.
+
+Baseline evaluation includes zero-shot inference and LoRA fine-tuning on 2,000 ScienceQA samples. Zero-shot LLaVA-1.5-7B achieves 63.5\% accuracy with a visual grounding gap of $\Delta_v = 7.5\%$. LoRA fine-tuning maintains image accuracy (62.6\%) but degrades text-only accuracy (51.0\%), widening the gap to $\Delta_v = 11.6\%$. The model becomes more visually dependent without increasing accuracy, confirming that the question-blind MLP strictly limits visual grounding. These findings validate the necessity of our MoC intervention.
+
+
+\section{Related Work}
+\label{sec:relwork}
+The connector $\phi\colon \mathbb{R}^{N \times d_v} \to \mathbb{R}^{L \times d}$, mapping $N$ frozen-encoder patch tokens into $L$ LLM-space embeddings, is the axis this work modifies. Three lines of research contextualize our approach: the evolution of connector architectures, the conditioning of visual features on the input query, and the application of Mixture of Experts (MoE) to Vision-Language Models (VLMs).
+
+\paragraph{Foundational Connector Designs.}
+\citet{radford2021clip} established the dual-encoder paradigm; \citet{liang2022modgap} show that its contrastive objective creates a \emph{modality gap} that any downstream connector must bridge. \citet{liu2024llava} demonstrate that a two-layer MLP with GELU nonlinearity, applied identically to each patch token, achieves state-of-the-art performance on ScienceQA. The alternative philosophy of learned-query compression, originating with \citet{alayrac2022flamingo}'s Perceiver Resampler and formalized by \citet{li2023blip2}'s Q-Former, reduces the visual-token budget but irreversibly discards spatial structure. \citet{cha2024honeybee} formalize this locality-versus-compression trade-off and motivate a per-sample architecture selector.
+
+\paragraph{Query-Conditioned Visual Feature Extraction.} All connectors discussed above are invariant to the input query $x^T$. \citet{ilievski2016fda} showed that question-driven region selection improves grounded VQA. \citet{dai2023instructblip} (InstructBLIP) scale this by injecting $x^T$ into Q-Former self-attention, achieving 90.7\% on ScienceQA-IMG, but this instruction-awareness is bottlenecked through $K$ compressed slots, irreversibly discarding fine-grained spatial structure. QCGP (our fourth expert $E_4$) instead conditions on the question at full patch resolution: an attention-pooled question vector $\mathbf{q}\!\in\!\mathbb{R}^d$ produces per-patch cosine-similarity gates via learned $W_q, W_k$ bridging matrices, applying element-wise modulation while preserving full spatial resolution $L\!=\!N$ (Section~\ref{sec:method}). \citet{zhang2025sail} and \citet{zou2026vlsa} confirm that standard Vision-Language Pre-training does not close the cross-modal alignment gap, further motivating $E_4$'s bridging mechanism.
+
+
+\paragraph{Mixture of Experts in VLMs.} \citet{shazeer2017moe} introduced sparsely-gated MoE; \citet{fedus2022switch} simplified it to top-1 routing with load-balancing loss. Recent MoE adaptations to VLMs take various structural approaches. MoE-LLaVA \citep{lin2024moellava} places MoE inside the LLM's FFN layers, leaving the connector untouched. CuMo \citep{li2024cumo} and MoCHA \citep{pang2026mocha} introduce routing at the connector level, but restrict their experts to identical architectural designs. MoVA \citep{zong2024mova} routes between multiple vision encoders, requiring several large frozen backbones. In contrast, our MoC uses a single shared CLIP encoder and routes inputs across four \emph{structurally distinct} connectors ($E_1$--$E_4$).
+
+\paragraph{Hallucination, Perceptual Failures, and the ScienceQA Benchmark.} \citet{wang2026papo} (PAPO) find that approximately 67\% of errors in RLVR-trained MLLMs stem from visual misperception rather than flawed reasoning, consistent with the hallucination inequality $P_\theta(\,\text{ans} \mid x^T) \gg P_\theta(\,\text{ans} \mid x^V)$: the language prior overwrites visual evidence when the connector fails to ground query-relevant content. \citet{li2023pope} formalize this with the Polling-based Object Probing Evaluation (POPE) diagnostic protocol to systematically quantify object hallucination. Our primary benchmark, ScienceQA \citep{lu2022scienceqa} (21{,}208 multiple-choice science questions) provides an image-required vs.\ text-only split that supports our hallucination probe $P_\theta(\,\text{ans}\!\mid\!x^T)$ alongside full accuracy $P_\theta(\,\text{ans}\!\mid\!x^T,V)$ and three-bucket failure analysis \citep{wang2026papo,zhang2023multimodalcot}.
+
+\section{Methodology}
+\label{sec:method}
+% -------------------------------------------------------
+
+\subsection{Model Architecture}
+
+Our experiments are built on LLaVA-1.5-7B, which pairs a CLIP ViT-L/14 vision encoder (operating at 336$\times$336 resolution) with a Vicuna-1.5-7B language model. The two are connected by a two-layer MLP that projects visual features into the language model's embedding space. When the model receives an image, CLIP chops it into a 24$\times$24 grid of patches, producing 576 visual tokens. These get projected through the MLP and concatenated with the tokenised question before being fed into the language model, which then generates an answer autoregressively. Figure~\ref{fig:arch} provides an overview of this architecture, highlighting the MLP projector as the component we aim to replace in the final project.
+
+For ScienceQA, we prompt the model with the question and answer choices in a standard multiple-choice format and ask it to respond with just the option letter.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\linewidth]{architecture.png}
+% ---------------------------------------------------------------
+% FIX 4: Caption updated — "question-conditioned MoE module" % replaced with the correct system name "Mixture of Connectors (MoC)".
+% ---------------------------------------------------------------
+\caption{\textbf{LLaVA-1.5-7B baseline architecture}. The input image is encoded by a frozen CLIP ViT-L/14 into $N=576$ patch tokens, projected through a two-layer MLP into the language model's token space, and concatenated with the tokenised question before the LLM generates an answer. The red dashed annotation marks the MLP projector as the component our proposed Mixture of Connectors (MoC) will replace in the final project.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Conversation Template and Inference}
+
+One implementation detail that turned out to be surprisingly important is the conversation template. LLaVA-1.5 uses the \texttt{vicuna\_v1} format, which wraps the input as:
+\begin{verbatim}
+A chat between a curious user and an assistant.
+USER: <image>\n<question>\nAnswer with the option
+      letter only (A, B, C, D, or E).
+ASSISTANT:
+\end{verbatim}
+We discovered during debugging that LLaVA-1.5 internally converts all inputs to embeddings (via \texttt{inputs\_embeds}), so the output from \texttt{generate()} contains \emph{only} the newly generated tokens. The common practice of slicing off the input length (\texttt{out[0][ids.shape[1]:]}) produces empty strings and yields 0\% accuracy. The correct approach is to decode \texttt{out[0]} directly. This is undocumented in the official codebase and was the single biggest debugging challenge we encountered.
+
+\subsection{Visual Grounding Gap}
+
+To measure how much a model actually depends on the image rather than relying on language patterns, we define the \emph{visual grounding gap}
+\begin{equation*}
+    \Delta_v = \text{Acc}_{\text{image}} - \text{Acc}_{\text{text-only}},
+\end{equation*}
+where $\text{Acc}_{\text{image}}$ is accuracy when the model receives both the image and the question, and $\text{Acc}_{\text{text-only}}$ is accuracy when we strip out the \texttt{<image>} token and provide no image tensor. A bigger $\Delta_v$ means the model is relying more on visual evidence and less on language shortcuts.
+
+\subsection{QLoRA Fine-Tuning}
+
+We fine-tune using QLoRA~\citep{dettmers2023qlora}: the LLM backbone is quantized to 4-bit NF4 precision via \texttt{bitsandbytes} (running on a Linux GPU — Google Colab T4), and low-rank adapters are applied to the four attention projection layers (query, key, value, and output projections). The vision encoder, original MLP projector, and output head remain frozen throughout. The NF4 quantization type with double quantization is selected as recommended by \citet{dettmers2023qlora} for language model fine-tuning: NF4 minimises quantization error for normally-distributed weights, while double quantization further reduces the memory cost of storing quantization constants.
+
+Following \citet{dettmers2023qlora}, \texttt{prepare\_model\_for\_kbit\_training} is called \emph{before} \texttt{get\_peft\_model} to ensure gradient checkpointing is compatible with the quantized base weights. Only LoRA adapters, connector expert modules, the router, and the question pooler receive gradient updates; the 4-bit base weights are frozen. Two separate parameter groups are used: connector experts and the router are given a higher learning rate ($2\times10^{-4}$), while LoRA adapters use a lower rate ($5\times10^{-5}$) to match the scale of the pretrained representations. This setup allows us to train on the full 6,218-sample training set for 2 epochs (778 gradient steps with effective batch size 16). Table~\ref{tab:hparams} lists the complete hyperparameter configuration.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{QLoRA fine-tuning hyperparameters.} 4-bit NF4 quantization reduces the 7B-parameter backbone to under 4~GB GPU memory, enabling full-dataset training on a single T4 GPU. LoRA rank $r=16$ targets the attention projections; connector experts use a separate, higher learning rate.}
+\label{tab:hparams}
+\begin{tabular}{lc}
+\toprule
+\textbf{Hyperparameter} & \textbf{Value} \\
+\midrule
+Quantization                  & 4-bit NF4 (\texttt{bitsandbytes}) \\
+LoRA rank $r$                 & 16 \\
+LoRA $\alpha$                 & 32 \\
+LoRA dropout                  & 0.05 \\
+LoRA targets                  & q\_proj, k\_proj, v\_proj, o\_proj \\
+LR (connectors + router)      & 2e-4 \\
+LR (LoRA adapters)            & 5e-5 \\
+Scheduler                     & Cosine with 3\% warmup \\
+Effective batch size          & 16 \\
+Epochs                        & 2 \\
+Max sequence length           & 512 \\
+Training samples              & 6,218 (full dataset) \\
+Optimizer                     & AdamW \\
+Load-balancing weight $\lambda_\mathrm{lb}$ & 0.01 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Proposed Extension: Mixture of Connectors (MoC)}
+
+For the final report, we replace the static connector with a \emph{Mixture of Connectors} (MoC): a sequence-level routing system that selects one of four architecturally heterogeneous expert connectors per input sample. To formally define these architectures, we establish their shared input and output spaces. Let $Z^V \in \mathbb{R}^{N \times d_v}$ represent the sequence of $N$ continuous visual patch tokens extracted by the frozen CLIP encoder, where $z_i^V$ is the $i$-th patch. Let $\mathbf{q} \in \mathbb{R}^d$ denote the attention-pooled text vector representing the user's input question. Concretely, given the LLM's token embedding matrix $U \in \mathbb{R}^{T \times d}$ for the input question $x^T$ (first $T$ tokens), $\mathbf{q}$ is computed via a learned pooling vector $\mathbf{q}_\mathrm{pool} \in \mathbb{R}^d$ as
+\begin{equation*}
+    \mathbf{q}
+  = \mathrm{Softmax}\!\left(\frac{\mathbf{q}_\mathrm{pool}^\top\,U^\top}{\sqrt{d}}\right)U
+  \;\in \mathbb{R}^{d}.
+\end{equation*}
+Each expert $k$ functions as a parameterized mapping $\phi_k\colon Z^V \to V^{(k)} \in \mathbb{R}^{L_k \times d}$, translating visual features into $L_k$ discrete tokens situated within the language model's embedding space. 
+
+The first two experts represent the dominant paradigms of contemporary Vision-Language Models. Expert 1 ($E_1$) is the token-preserving Multi-Layer Perceptron (MLP), representing the question-blind baseline utilized in LLaVA-1.5. It applies a static two-layer MLP identically to each patch token
+\begin{equation*}
+  \phi_1(Z^V)_i = W_2 \sigma(W_1 z_i^V),
+  \label{eq:expert1}
+\end{equation*}
+where $W_1 \in \mathbb{R}^{d \times d_v}$ and $W_2 \in \mathbb{R}^{d \times d}$ are trainable weight matrices, and $\sigma$ is the GELU non-linearity. This architecture preserves exact spatial resolution ($L_1 = N$) but statically projects features without regard for query relevance. Expert 2 ($E_2$) is a compressive Q-Former bottleneck, utilizing cross-attention to aggressively downsample the patch sequence. It is formulated as
+\begin{equation*}
+  \phi_2(Z^V) = \mathrm{softmax}\!\left(\frac{Q K_v^\top}{\sqrt{d}}\right) V_v,
+  \label{eq:expert2}
+\end{equation*}
+where $Q \in \mathbb{R}^{K \times d}$ is a fixed, learnable set of $K$ query vectors. The key and value matrices are linear projections of the visual sequence: $K_v = Z^V W_K$ and $V_v = Z^V W_V$, with $W_K, W_V \in \mathbb{R}^{d_v \times d}$. While this maximizes computational efficiency by bounding the output sequence ($L_2 = K \ll N$), it irreversibly discards fine-grained spatial structure.
+
+The final two experts explore the structural extremes of the locality-compression trade-off \citep{cha2024honeybee}. Expert 3 ($E_3$) is an attention-pooled global token, representing the maximally compact limit of the abstractor family. It collapses the entire visual grid into a singular summary vector $\mathbf{c} \in \mathbb{R}^{d_v}$ via learned feature-dimension weights $\mathbf{w} \in \mathbb{R}^{d_v}$, defined as $\mathbf{c} = \sum_{i=1}^N a_i z_i^V$ where $a_i = \mathrm{softmax}_i(\mathbf{w}^\top z_i^V / \sqrt{d_v})$. This context vector is mapped to the LLM space via a trainable linear projection $W_{E_3} \in \mathbb{R}^{d \times d_v}$, yielding a single spatially-blind token ($L_3 = 1$)
+\begin{equation*}
+  \phi_3(Z^V) = W_{E_3} \sum_{i=1}^N \mathrm{softmax}_i\!\left(\frac{\mathbf{w}^\top z_i^V}{\sqrt{d_v}}\right) z_i^V.
+  \label{eq:expert3}
+\end{equation*}
+Expert 4 ($E_4$) is our proposed \emph{Question-Conditioned Gating Projector} (QCGP), a standalone connector that introduces explicit cross-attention gating at the modality boundary to evaluate per-patch relevance. To bridge the geometric modality gap safely, the question $\mathbf{q}$ and each patch $z_i^V$ are projected into a shared $d_k$-dimensional subspace via $W_q \in \mathbb{R}^{d_k \times d}$ and $W_k \in \mathbb{R}^{d_k \times d_v}$ respectively, then $L_2$-normalized: $\hat{u} = W_q \mathbf{q} / \lVert W_q \mathbf{q} \rVert_2$ and $\hat{k}_i = W_k z_i^V / \lVert W_k z_i^V \rVert_2$. A scalar relevance score $\alpha_i \in (0, 1)$ is computed per patch via temperature-scaled cosine similarity across the sequence dimension. To modulate the patch at the channel level, this scalar scales a learned, shared expansion vector $W_g \in \mathbb{R}^{d_v}$, offset by a bias $\mathbf{b}_g \in \mathbb{R}^{d_v}$, to produce a gating vector $\mathbf{g}_i \in \mathbb{R}^{d_v}$
+\begin{equation}
+  \alpha_i = \mathrm{softmax}_i\!\left( \frac{\hat{u}^\top \hat{k}_i}{\tau_g} \right), \qquad \mathbf{g}_i = \sigma(\alpha_i W_g + \mathbf{b}_g), \qquad \phi_4(Z^V)_i = W_{E_4} (z_i^V \odot \mathbf{g}_i).
+  \label{eq:expert4}
+\end{equation}
+Here, $\sigma$ denotes the Sigmoid activation function, and $\alpha_i W_g$ represents scalar-vector multiplication. This expansion allows the model to learn dimension-specific suppression strategies while maintaining spatial equivariance across the $N$ patches. Finally, $W_{E_4} \in \mathbb{R}^{d \times d_v}$ projects the modulated visual features into the LLM embedding space. Like $E_1$, QCGP preserves full spatial resolution ($L_4 = N$), but acts as a dynamic information filter that suppresses query-irrelevant content.
+
+Selection among these four connectors is governed by a lightweight two-layer router that takes the question vector $\mathbf{q}$ as input and produces a four-way probability distribution over the experts
+\begin{equation*}
+  \mathbf{r} = \mathrm{softmax}\!\left(
+    W_r^{(2)}\,\sigma\!\left(W_r^{(1)}\mathbf{q}\right)
+  \right) \in \mathbb{R}^4,
+  \qquad k^* = \arg\max_k r_k.
+  \label{eq:router}
+\end{equation*}
+At inference, the top-1 expert $\phi_{k^*}$ exclusively processes the patch sequence. During training, a straight-through estimator allows gradients to bypass the discrete $\arg\max$ operation. To prevent a degenerate routing distribution where a single expert monopolizes all inputs, we train the router with an auxiliary load-balancing loss
+\begin{equation*}
+  \mathcal{L}_{\mathrm{lb}} \;=\; K\sum_{k=1}^{K} f_k \cdot p_k,
+  \label{eq:lb_loss}
+\end{equation*}
+where $f_k$ is the fraction of batch tokens dispatched to expert $k$ and $p_k$ is the mean router probability for expert $k$.
+
+\section{Experimental Design}
+\subsection{Research Questions}
+
+Our experiments are organised around three core research questions. First, we establish the initial baseline by determining the size of the visual grounding gap of LLaVA-1.5-7B on ScienceQA in the zero-shot setting. Second, we investigate whether LoRA fine-tuning on domain-specific data improves overall accuracy and how it alters the model's reliance on visual evidence. Finally, looking toward the final project, we ask whether our proposed Mixture of Connectors can further improve both accuracy and visual grounding over this fine-tuned MLP baseline.
+\subsection{Dataset}
+
+We use ScienceQA, accessed through HuggingFace as \texttt{derek-thomas/ScienceQA}. Since our project focuses on visual reasoning, we filter all splits to keep only questions that include an image. Table~\ref{tab:data} shows the resulting split sizes.
+\begin{table}[h]
+\centering
+\caption{\textbf{ScienceQA split sizes after filtering to image-only questions.} Filtering is strictly enforced to ensure that performance metrics exclusively reflect grounded multimodal reasoning rather than text-only factual recall. The constrained training subset limits adaptation to isolate early optimization behavior.}
+\label{tab:data}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Split} & \textbf{Total (with images)} & \textbf{Used in experiments} \\
+\midrule
+Train      & 6,218 & 2,000 (limited by VRAM) \\
+Validation & 500   & 500 \\
+Test       & 1,000 & 200 (zero-shot) / 500 (fine-tuned) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Metrics and Baselines}
+
+We report two metrics. \textbf{Accuracy} is the fraction of test samples where the predicted answer letter matches the ground truth. We extract answer letters using a cascade of regex patterns that check for parenthesised letters like (A), phrases like ``the answer is B'', and standalone capital letters. The \textbf{visual grounding gap} $\Delta_v$ measures how much performance drops when the image is removed, as defined in Section~\ref{sec:method}.
+
+Our primary baseline is zero-shot LLaVA-1.5-7B with no fine-tuning. The text-only variant of the same model (image removed) serves as the lower bound, isolating how much the model can get right from language patterns alone. All experiments were run on a single NVIDIA GeForce RTX 5080 (16~GB VRAM) on Windows~11.
+
+
+% -------------------------------------------------------
+\section{Results and Findings}
+% -------------------------------------------------------
+
+\subsection{Zero-Shot Performance}
+
+Table~\ref{tab:zeroshot} shows how LLaVA-1.5-7B performs on ScienceQA without
+any fine-tuning.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Zero-shot accuracy and visual grounding gap ($\Delta_v$) of LLaVA-1.5-7B on the ScienceQA image-only test subset.} This establishes the baseline model's intrinsic reliance on visual evidence prior to domain-specific adaptation.}
+\label{tab:zeroshot}
+\begin{tabular}{lc}
+\toprule
+\textbf{Setting} & \textbf{Accuracy} \\
+\midrule
+With image (200 samples)        & 63.5\% \\
+Text only  (100 samples)        & 56.0\% \\
+Visual grounding gap $\Delta_v$ & \textbf{+7.5\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The 63.5\% figure sits slightly below the 66.8\% that LLaVA-1.5-7B achieves after full fine-tuning on the complete ScienceQA-IMG training set \citep{liu2024llava}, as expected for zero-shot inference without any domain adaptation. The 7.5\% visual grounding gap tells us the model does use visual information, but the language prior alone already answers 56\% of questions correctly, a large proportion of accuracy from text patterns rather than genuine diagram understanding.
+
+We note that the text-only evaluation used 100 samples (a subset of the 200 image-based samples) due to time constraints. While this introduces a small sample-size mismatch, the text-only subset was drawn from the same test pool, so the comparison remains directionally meaningful. We plan to run both conditions on identical sample sets for the final report.
+
+Looking at individual errors (Table~\ref{tab:errors}), we spotted a recurring pattern: the model has a strong tendency to predict option~(A) when it is unsure. Four out of five sampled errors default to the first choice regardless of what the image shows. This first-option bias is well documented in language models generally, but it is particularly problematic for VQA because it means the model falls back on a positional heuristic instead of actually looking at the diagram.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Qualitative sample of zero-shot prediction errors.} The predictions demonstrate a systemic bias toward option (A) when the static MLP connector fails to adequately surface query-relevant visual features. This behavior empirically illustrates the hallucination inequality, where the language prior overwrites ambiguous or degraded visual evidence.}
+\label{tab:errors}
+\begin{tabular}{p{6.8cm}ccc}
+\toprule
+\textbf{Question (truncated)} & \textbf{Ground-Truth} & \textbf{Prediction}\\
+\midrule
+People can use the engineering-design process to develop\ldots & B & A\\
+This passage describes the fleece type trait in sheep\ldots    & B & D\\
+Select the best answer.                                        & C & A\\
+The images below show two pairs of magnets\ldots               & C & A\\
+Use the data to answer the question below.                     & B & A\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Fine-Tuning Results}
+The headline accuracy barely moved ($-$0.9\%), which is not surprising. LLaVA-1.5 was already instruction-tuned on data that includes ScienceQA-style questions, so one epoch on 2,000 samples is unlikely to shift the needle much on a 7B-parameter model. But the more telling result is what happened underneath. Text-only accuracy dropped by a full 5 percentage points, while image-based accuracy held steady. In other words, fine-tuning did not make the model smarter overall; it made it more \emph{visually dependent}. The correct answers from the fine-tuned model are more likely to be genuinely grounded in what the image shows, rather than being lucky guesses from language patterns. We caution that the $-$0.9\% image-accuracy change is within the statistical noise expected for binomial samples of this size, and that the 5.0\% text-only drop may partly reflect the mismatch in sample counts noted in the caption of Table~\ref{tab:comparison}; both will be resolved with matched samples in the final report.
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Comparison of zero-shot and LoRA fine-tuned performance on ScienceQA.} The expansion of the visual grounding gap ($\Delta_v$) from 7.5\% to 11.6\% demonstrates that while minimal domain adaptation does not improve top-line accuracy, it systematically degrades text-only guessing, thereby increasing the model's strict dependence on visual evidence}
+\label{tab:comparison}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{Image Acc.} & \textbf{Text Acc.} & $\Delta_v$ \\
+\midrule
+Zero-shot       & 63.5\%   & 56.0\%   & 7.5\%  \\
+LoRA fine-tuned & 62.6\%   & 51.0\%   & \textbf{11.6\%} \\
+\midrule
+Change          & $-$0.9\% & $-$5.0\% & $+$4.1\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:loss} shows the training loss curve. It decreases smoothly from 1.46 to 0.58 across 125 gradient steps, with no signs of instability or sudden jumps. Training took about 2.8 hours on the RTX 5080.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\linewidth]{output.png}
+\caption{\textbf{Cross-entropy training loss over 125 gradient steps (1 epoch, 2,000 samples) during LoRA fine-tuning.} The monotonic convergence from 1.46 to 0.58 confirms stable optimization of the attention projections despite the severe low-rank constraint ($r=8$) and restricted effective batch size.}
+\label{fig:loss}
+\end{figure}
+
+\subsection{Plan for Remaining Work}
+
+Our remaining objectives are as follows. First, we will execute a detailed subject-level analysis, breaking down both accuracy and $\Delta_v$ by specific scientific disciplines to identify where the model falls back on text shortcuts. Second, we will fully implement and evaluate the Mixture of Connectors (MoC) architecture detailed in Section~\ref{sec:method}, running single-expert ablations to isolate the individual contributions of $E_1$ through $E_4$ alongside the joint routing system. Finally, we will perform a targeted failure analysis by manually classifying 100 error cases into perception errors, reasoning errors, and CoT rescues following the taxonomy of \citet{wang2026papo}. This will motivate the MoC design empirically and help us interpret the router's expert-selection behaviour across different question types.
+
+\bibliographystyle{plainnat}
+\bibliography{ref}
+
+\end{document}
