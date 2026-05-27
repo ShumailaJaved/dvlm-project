@@ -23,10 +23,12 @@
 #   tokenizer, base_model, ip, _ = load_pretrained_model(
 #       "liuhaotian/llava-v1.5-7b", None, "llava-v1.5-7b",
 #       quantization_config=get_bnb_config())
-#   model = upgrade_to_moc(base_model)   # 1. class surgery FIRST
-#   moc   = build_moc(model).to(device).half()
-#   model.set_moc(moc)                   # 2. attach MoC
-#   model = apply_qlora(model)           # 3. QLoRA LAST (wraps in PeftModel)
+#   model = upgrade_to_moc(base_model)        # 1. class surgery FIRST
+#   moc   = build_moc(model).to(device)
+#   model.set_moc(moc)                        # 2. attach MoC (no .half() yet)
+#   model = prepare_model_for_kbit_training(model)  # 3. kbit prep
+#   moc.half()                                # 4. re-cast AFTER kbit prep
+#   model = get_peft_model(model, lora_cfg)   # 5. PEFT wrapping LAST
 # ============================================================
 
 import sys
@@ -469,12 +471,20 @@ def upgrade_to_moc(model) -> "MoCLlavaForCausalLM":
     structure, so the reassignment is safe.
 
     CRITICAL ORDER — this MUST be called before get_peft_model:
-        base_model = load_pretrained_model(...)    # raw LlavaLlamaForCausalLM
-        model      = upgrade_to_moc(base_model)    # class surgery HERE
-        moc        = build_moc(model).to(dev).half()
+        base_model = load_pretrained_model(...)         # raw LlavaLlamaForCausalLM
+        model      = upgrade_to_moc(base_model)         # class surgery HERE
+        moc        = build_moc(model).to(dev)           # build before kbit prep
         model.set_moc(moc)
         model      = prepare_model_for_kbit_training(model)
-        model      = get_peft_model(model, lora_cfg)  # wraps in PeftModel
+        moc.half()                                      # re-cast AFTER kbit prep
+        model      = get_peft_model(model, lora_cfg)   # wraps in PeftModel
+
+    Why moc.half() comes after prepare_model_for_kbit_training:
+        prepare_model_for_kbit_training upcasts every 1D parameter to float32
+        (for gradient-checkpointing numerical stability).  This includes MoC's
+        q_pool, router biases, etc.  Since the LLaVA forward operates in
+        float16 (bnb_4bit_compute_dtype=float16), the MoC must also be in
+        float16 — so we re-cast immediately after the kbit prep call.
 
     Calling upgrade_to_moc AFTER get_peft_model does class surgery on the
     PeftModelForCausalLM shell, which has no self.model at its top level,
@@ -724,11 +734,18 @@ if __name__ == "__main__":
 
         # Step 1 & 2: upgrade class, build MoC, attach MoC
         model = upgrade_to_moc(base_model)
-        moc   = build_moc(model).to(DEVICE).half()
+        moc   = build_moc(model).to(DEVICE)   # .half() comes AFTER kbit prep
         model.set_moc(moc)
 
-        # Step 3 & 4: apply QLoRA on the upgraded model
+        # Step 3: prepare_model_for_kbit_training upcasts ALL 1D parameters
+        # (biases, layer norms, q_pool, router biases…) to float32 for
+        # gradient-checkpointing stability.  We re-cast MoC back to float16
+        # immediately after because the LLaVA forward runs in float16
+        # (bnb_4bit_compute_dtype=float16) and mismatched dtypes cause errors.
         model = prepare_model_for_kbit_training(model)
+        moc.half()   # override the float32 upcast for MoC params
+
+        # Step 4: wrap in PEFT (must be last)
         lora_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
                               target_modules=["q_proj","k_proj","v_proj","o_proj"],
                               bias="none", task_type="CAUSAL_LM")
