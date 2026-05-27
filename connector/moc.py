@@ -681,14 +681,25 @@ if __name__ == "__main__":
 
     try:
         from llava.model.builder import load_pretrained_model
+        from transformers import BitsAndBytesConfig
         from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
         from losses.load_balance import load_balancing_loss, LAMBDA_LB
         import torch.nn.functional as F
 
         # ---- CHECK 3: Forward pass → loss is valid scalar ------------------
+        # Build explicit BitsAndBytesConfig instead of using load_4bit=True.
+        # load_4bit=True is a LLaVA convenience flag that can leak into the
+        # model __init__ as an unexpected keyword argument on some versions.
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+        )
         print("Loading LLaVA-1.5-7B in 4-bit …")
         tokenizer, base_model, image_processor, _ = load_pretrained_model(
-            "liuhaotian/llava-v1.5-7b", None, "llava-v1.5-7b", load_4bit=True)
+            "liuhaotian/llava-v1.5-7b", None, "llava-v1.5-7b",
+            quantization_config=bnb_config)
 
         # Apply QLoRA
         base_model = prepare_model_for_kbit_training(base_model)
