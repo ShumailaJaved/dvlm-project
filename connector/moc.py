@@ -541,6 +541,17 @@ def print_parameter_counts(model, moc) -> None:
 
 if __name__ == "__main__":
     import argparse
+    import os
+
+    # ---- Fix sys.path so `from connector.*` works when run as a script -------
+    # When Python runs connector/moc.py directly, it adds connector/ to
+    # sys.path.  That makes `from connector.expert_e1 import ...` fail because
+    # there is no connector/ package inside connector/.  Inserting the project
+    # root (one level up from this file) fixes the lookup.
+    _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
+    # --------------------------------------------------------------------------
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--full", action="store_true",
