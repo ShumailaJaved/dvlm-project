@@ -1,3 +1,4 @@
 # losses/__init__.py
 # Package for MoC auxiliary losses.
-# load_balancing_loss() will be added in Task C-2.
+
+from .load_balance import load_balancing_loss, LAMBDA_LB  # Task C-2
