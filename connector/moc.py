@@ -108,6 +108,18 @@ class MixtureOfConnectors(nn.Module):
                                        HAS gradient — needed for L_lb.
                 k_star (int):          Selected expert index ∈ {0, 1, 2, 3}.
         """
+        # ---- Dtype normalisation -----------------------------------------------
+        # prepare_model_for_kbit_training converts float16 params → float32,
+        # and get_peft_model may do additional dtype passes.  Rather than
+        # fighting those conversions, we detect the module's current compute
+        # dtype from the router's first weight and cast both inputs to match.
+        # The caller is responsible for casting V back to its own dtype if
+        # needed (e.g. to float16 before sequence assembly in the LLM).
+        _dtype = self.router.W1.weight.dtype
+        Z_V                = Z_V.to(dtype=_dtype)
+        question_embeddings = question_embeddings.to(dtype=_dtype)
+        # -----------------------------------------------------------------------
+
         # Step 1: Pool question embeddings → single question vector q
         q = self.pooler(question_embeddings)          # (d,)
 
@@ -374,7 +386,12 @@ if _try_import_llava():
                     if i < num_images:
                         # Insert V (variable-length visual tokens) here.
                         # V can be (576, d), (32, d), or (1, d) depending on expert.
-                        cur_new_input_embeds.append(V.to(self.device))
+                        # Cast V to match the embedding dtype (float16) so
+                        # the concat with text embeddings is dtype-consistent,
+                        # regardless of what dtype the MoC params ended up in
+                        # after prepare_model_for_kbit_training / get_peft_model.
+                        cur_new_input_embeds.append(
+                            V.to(device=self.device, dtype=U.dtype))
                         cur_new_labels.append(
                             torch.full(
                                 (V.shape[0],), IGNORE_INDEX,
