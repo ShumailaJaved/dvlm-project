@@ -16,15 +16,17 @@
 # COMMAND (full verification — on Colab A100):
 #   python connector/moc.py --full
 #
-# USAGE IN TRAINING:
+# USAGE IN TRAINING  (order matters — see upgrade_to_moc docstring):
 #   from connector.moc import build_moc, upgrade_to_moc, MixtureOfConnectors
+#   from setup_qlora import get_bnb_config, apply_qlora
 #
-#   tokenizer, model, image_processor, _ = load_pretrained_model(
+#   tokenizer, base_model, ip, _ = load_pretrained_model(
 #       "liuhaotian/llava-v1.5-7b", None, "llava-v1.5-7b",
-#       quantization_config=bnb_config)   # see setup_qlora.get_bnb_config()
-#   model = upgrade_to_moc(model)
-#   moc   = build_moc(model, device=device)
-#   model.set_moc(moc)
+#       quantization_config=get_bnb_config())
+#   model = upgrade_to_moc(base_model)   # 1. class surgery FIRST
+#   moc   = build_moc(model).to(device).half()
+#   model.set_moc(moc)                   # 2. attach MoC
+#   model = apply_qlora(model)           # 3. QLoRA LAST (wraps in PeftModel)
 # ============================================================
 
 import sys
@@ -466,13 +468,20 @@ def upgrade_to_moc(model) -> "MoCLlavaForCausalLM":
     reloading weights.  Both classes share the same PyTorch module
     structure, so the reassignment is safe.
 
-    After calling this, set the MoC:
-        model = upgrade_to_moc(model)
-        moc   = build_moc(model).to(device).half()
+    CRITICAL ORDER — this MUST be called before get_peft_model:
+        base_model = load_pretrained_model(...)    # raw LlavaLlamaForCausalLM
+        model      = upgrade_to_moc(base_model)    # class surgery HERE
+        moc        = build_moc(model).to(dev).half()
         model.set_moc(moc)
+        model      = prepare_model_for_kbit_training(model)
+        model      = get_peft_model(model, lora_cfg)  # wraps in PeftModel
+
+    Calling upgrade_to_moc AFTER get_peft_model does class surgery on the
+    PeftModelForCausalLM shell, which has no self.model at its top level,
+    causing 'MoCLlavaForCausalLM object has no attribute model'.
 
     Args:
-        model: A loaded LlavaLlamaForCausalLM instance.
+        model: A loaded LlavaLlamaForCausalLM instance (NOT a PeftModel).
 
     Returns:
         The same object, now typed as MoCLlavaForCausalLM.
@@ -703,17 +712,27 @@ if __name__ == "__main__":
             "liuhaotian/llava-v1.5-7b", None, "llava-v1.5-7b",
             quantization_config=bnb_config)
 
-        # Apply QLoRA
-        base_model = prepare_model_for_kbit_training(base_model)
-        lora_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
-                              target_modules=["q_proj","k_proj","v_proj","o_proj"],
-                              bias="none", task_type="CAUSAL_LM")
-        base_model = get_peft_model(base_model, lora_cfg)
+        # IMPORTANT ORDER:
+        #   1. upgrade_to_moc  — class surgery while still LlavaLlamaForCausalLM
+        #   2. build_moc / set_moc — mm_projector is directly accessible here
+        #   3. prepare_model_for_kbit_training — must precede get_peft_model
+        #   4. get_peft_model — wraps in PeftModel; do this LAST
+        #
+        # Calling upgrade_to_moc after get_peft_model does class surgery on a
+        # PeftModelForCausalLM shell, which has no self.model attribute and
+        # causes 'MoCLlavaForCausalLM has no attribute model'.
 
-        # Upgrade to MoC
+        # Step 1 & 2: upgrade class, build MoC, attach MoC
         model = upgrade_to_moc(base_model)
         moc   = build_moc(model).to(DEVICE).half()
         model.set_moc(moc)
+
+        # Step 3 & 4: apply QLoRA on the upgraded model
+        model = prepare_model_for_kbit_training(model)
+        lora_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
+                              target_modules=["q_proj","k_proj","v_proj","o_proj"],
+                              bias="none", task_type="CAUSAL_LM")
+        model = get_peft_model(model, lora_cfg)
 
         # Create a minimal test batch (random image + question tokens)
         from llava.constants import IMAGE_TOKEN_INDEX
