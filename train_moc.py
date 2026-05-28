@@ -110,13 +110,17 @@ def patch_generate_compat(_model=None) -> None:
 # Data utilities (identical to train_single.py)
 # ============================================================
 
-def build_prompt(sample: dict, with_image: bool = True) -> tuple:
+def build_prompt(sample: dict, with_image: bool = True,
+                 for_eval: bool = False) -> tuple:
     """
     Format a ScienceQA sample as a LLaVA vicuna_v1 prompt string.
 
     Args:
         sample:     ScienceQA dataset row.
         with_image: If True, prepend the <image> token.
+        for_eval:   If True, leave the assistant turn empty so the model
+                    generates the answer.  If False (training), the answer
+                    letter is appended as a supervised target.
 
     Returns:
         (full_prompt_str, answer_letter_str)
@@ -135,7 +139,9 @@ def build_prompt(sample: dict, with_image: bool = True) -> tuple:
     )
     conv = conv_templates["vicuna_v1"].copy()
     conv.append_message(conv.roles[0], user_msg)
-    conv.append_message(conv.roles[1], answer_letter)
+    # During evaluation leave the assistant turn empty so the model generates
+    # the answer.  During training fill it in as the supervised target.
+    conv.append_message(conv.roles[1], None if for_eval else answer_letter)
     return conv.get_prompt(), answer_letter
 
 
@@ -236,12 +242,22 @@ def collate_fn(batch: list, pad_id: int) -> dict:
 # ============================================================
 
 def extract_answer(text: str) -> str:
-    """Extract the answer letter (A-E) from model output using regex."""
+    """
+    Extract the predicted answer letter (A-E) from model output.
+
+    Tries three patterns in order: standalone letter, parenthesised letter,
+    phrase 'the answer is X'.  Falls back to the very first character if it
+    is a valid option letter (handles outputs like "A." or "A\n").
+    Returns "" if nothing matches.
+    """
     text = text.strip()
     for pat in [r'\b([A-E])\b', r'\(([A-E])\)', r'answer\s+is\s+([A-E])']:
         m = re.search(pat, text, re.IGNORECASE)
         if m:
             return m.group(1).upper()
+    # Fallback: first character (covers "A.", "A\n", etc.)
+    if text and text[0].upper() in ANSWER_LETTERS:
+        return text[0].upper()
     return ""
 
 
@@ -275,7 +291,8 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
     for item in tqdm(items, desc="Evaluating", leave=False):
         gt = ANSWER_LETTERS[item["answer"]]
         for with_img in (True, False):
-            prompt, _ = build_prompt(item, with_image=with_img)
+            # for_eval=True: leave assistant turn empty so model generates answer.
+            prompt, _ = build_prompt(item, with_image=with_img, for_eval=True)
             ids = tokenizer_image_token(
                 prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
             ).to(device)
@@ -293,11 +310,15 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
             # attention_mask must be explicit: transformers ≥ 4.46 calls
             # attention_mask.new_ones(...) in _update_model_kwargs_for_generation
             # and crashes if attention_mask is None.
-            attn_mask = torch.ones_like(ids)
+            attn_mask  = torch.ones_like(ids)
+            input_len  = ids.shape[1]          # used to slice off prompt tokens below
             out  = model.generate(inputs=ids, images=imgs,
                                    attention_mask=attn_mask,
                                    max_new_tokens=3, do_sample=False)
-            pred = extract_answer(tokenizer.decode(out[0], skip_special_tokens=True))
+            # Decode only the newly generated tokens (not the full prompt).
+            # out[0] = (prompt_tokens + new_tokens,); slice from input_len onward.
+            new_tokens = out[0][input_len:]
+            pred = extract_answer(tokenizer.decode(new_tokens, skip_special_tokens=True))
 
             if with_img:
                 correct_img += int(pred == gt)
