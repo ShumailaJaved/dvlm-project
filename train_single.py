@@ -16,7 +16,7 @@
 #   --lr_expert 2e-4  (default: 2e-4, learning rate for expert params)
 #   --lr_lora   5e-5  (default: 5e-5, learning rate for LoRA adapters)
 #   --batch     4     (default: 4 per device; accum=4 → effective batch=16)
-#   --n_eval    200   (default: 200 test samples)
+#   --n_eval    500   (default: 500 test samples)
 #   --out_dir   results
 #
 # INSTALL IN COLAB FIRST:
@@ -578,13 +578,13 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
             # attention_mask.new_ones(...) in _update_model_kwargs_for_generation
             # and crashes if attention_mask is None.
             attn_mask  = torch.ones_like(ids)
-            input_len  = ids.shape[1]          # used to slice off prompt tokens below
+            MAX_NEW    = 3
             out  = model.generate(inputs=ids, images=imgs,
                                    attention_mask=attn_mask,
-                                   max_new_tokens=3, do_sample=False)
-            # Decode only the newly generated tokens (not the full prompt).
-            # out[0] = (prompt_tokens + new_tokens,); slice from input_len onward.
-            new_tokens = out[0][input_len:]
+                                   max_new_tokens=MAX_NEW, do_sample=False)
+            # LLaVA routes through inputs_embeds so out[0] may not contain
+            # input tokens at the front — slice from the tail instead.
+            new_tokens = out[0][-MAX_NEW:]
             pred = extract_answer(tokenizer.decode(new_tokens, skip_special_tokens=True))
 
             if with_img:
@@ -842,7 +842,7 @@ if __name__ == "__main__":
                         help="Learning rate for LoRA adapter parameters.")
     parser.add_argument("--batch",      type=int,   default=4,
                         help="Per-device batch size (accum=4 → effective=16).")
-    parser.add_argument("--n_eval",     type=int,   default=200,
+    parser.add_argument("--n_eval",     type=int,   default=500,
                         help="Number of test samples to evaluate on.")
     parser.add_argument("--out_dir",    type=str,   default="results",
                         help="Output directory for checkpoints and result files.")
