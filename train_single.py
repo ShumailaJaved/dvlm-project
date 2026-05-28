@@ -508,6 +508,7 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
                     item["image"], return_tensors="pt"
                 )["pixel_values"].to(device, dtype=torch.float16)
                 imgs = pix
+                ids  = ids.unsqueeze(0)   # (T,) → (1, T) required by generate
             else:
                 # Strip image placeholder for text-only run
                 ids  = ids[ids != IMAGE_TOKEN_INDEX].unsqueeze(0)
