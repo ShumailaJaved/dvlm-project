@@ -605,6 +605,21 @@ def train(args):
         bias="none", task_type="CAUSAL_LM",
     )
     model = get_peft_model(model, lora_cfg)
+
+    # ---- CRITICAL: restore expert/pooler gradients after PEFT freezing -------
+    # get_peft_model calls mark_only_lora_as_trainable(), which sets
+    # requires_grad=False on ALL parameters whose name does not contain
+    # "lora_".  This silently freezes the expert and pooler modules, so
+    # their parameters never receive gradient updates — same root cause as
+    # the router collapse bug in train_moc.py.
+    # Fix: explicitly re-enable requires_grad for trainable modules.
+    # E1 stays frozen — it wraps the pretrained mm_projector intentionally.
+    if args.expert in ("E2", "E3", "E4"):
+        expert.requires_grad_(True)
+    if pooler is not None:
+        pooler.requires_grad_(True)
+    # -------------------------------------------------------------------------
+
     model.print_trainable_parameters()
 
     # ---- 4. Dataset ----------------------------------------------------------
@@ -626,9 +641,9 @@ def train(args):
     #             LoRA adapter params at lower lr (args.lr_lora).
     expert_params = []
     if args.expert in ("E2", "E3", "E4"):
-        expert_params += list(expert.parameters())
+        expert_params += [p for p in expert.parameters() if p.requires_grad]
     if pooler is not None:
-        expert_params += list(pooler.parameters())
+        expert_params += [p for p in pooler.parameters() if p.requires_grad]
 
     lora_params = [p for n, p in model.named_parameters()
                    if p.requires_grad and "lora_" in n]
