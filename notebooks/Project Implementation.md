@@ -379,7 +379,7 @@ The LLM token embeddings $U$ for the question tokens are available from `model.m
 > 
 > - Do **not** pass $\mathbf{q}$ through the LLM layers — extract only the embedding lookup output.
 > - `embed_tokens` requires integer token IDs, not float embeddings. Pass `question_input_ids` directly.
-> - Keep `QuestionPooler` in `float16` to match the LLM's compute dtype.
+> - Keep `QuestionPooler` (and every trainable connector module) in `float32`. Training these small custom modules in `float16` overflows to NaN within a few optimizer steps. They are dtype-transparent — they cast `float16` inputs to `float32` internally and return `float16` output — so they interoperate with the LLM's `float16` pipeline without being trained in `float16`. See the Part C pitfall box for the full explanation.
 
 **→ Report mapping:** Methodology section — the $\mathbf{q}$ formula is already in the paper (MoC subsection preamble). No new writing needed; just confirm the implementation matches the equation.
 
@@ -608,26 +608,34 @@ class MixtureOfConnectors(nn.Module):
         self.pooler  = pooler
 
     def forward(self, Z_V, question_embeddings):
-        # Detect the module's current compute dtype from the router's weight.
-        # This is necessary because prepare_model_for_kbit_training upcasts
-        # all 1D parameters (biases, layer norms, q_pool) to float32, but
-        # the LLM forward operates in float16. The MoC is re-cast to float16
-        # after kbit prep, but code that runs before that re-cast must handle
-        # mixed dtypes gracefully.
-        _dtype = self.router.W1.weight.dtype
-        Z_V                = Z_V.to(dtype=_dtype)
-        question_embeddings = question_embeddings.to(dtype=_dtype)
-
-        q      = self.pooler(question_embeddings)   # (d,)
+        # The trainable modules (router, pooler, E2/E3/E4) are kept in float32
+        # (see the ordering box below). The pooler/router run in float32, so
+        # cast the question embeddings (float16 from embed_tokens) to the
+        # router dtype before pooling.
+        _router_dtype = self.router.W1.weight.dtype   # float32 in training
+        q      = self.pooler(question_embeddings.to(dtype=_router_dtype))  # (d,)
         r      = self.router(q)                     # (4,)
         k_star = torch.argmax(r.detach()).item()    # STE — no grad through argmax
 
+        # Pass Z_V as-is (float16 from the vision tower). Each expert is
+        # dtype-transparent: it casts Z_V (and q for E4) to its own parameter
+        # dtype internally and returns the output in Z_V's original dtype.
         if k_star == 3:   # E4 needs q as an extra argument
             V = self.experts[k_star](Z_V, q)
         else:
             V = self.experts[k_star](Z_V)
 
         return V, r, k_star
+```
+
+Every expert's `forward` follows the dtype-transparent pattern so that float32 weights can consume float16 patch features and feed float16 output back into the LLM:
+
+```python
+def forward(self, Z_V, ...):
+    in_dtype = Z_V.dtype
+    Z_V = Z_V.to(self.W_K.weight.dtype)   # → float32 (the module's own dtype)
+    ...                                    # all compute in float32
+    return out.to(in_dtype)               # → float16 for the LLM pipeline
 ```
 
 **Step 2: Handle variable-length visual token sequences**
@@ -654,7 +662,7 @@ from connector.moc import upgrade_to_moc, build_moc
 model = upgrade_to_moc(base_model)
 
 # 2. Build and attach MoC — mm_projector is still directly accessible here.
-moc = build_moc(model).to(device)   # do NOT call .half() yet
+moc = build_moc(model).to(device)   # keep float32 — never call .half()
 model.set_moc(moc)
 
 # 3. kbit prep — MUST come before get_peft_model.
@@ -662,10 +670,13 @@ model.set_moc(moc)
 #    router biases) to float32 for gradient-checkpointing stability.
 model = prepare_model_for_kbit_training(model)
 
-# 4. Re-cast MoC to float16 — because the LLaVA forward operates in float16
-#    (bnb_4bit_compute_dtype=float16) and prepare_model_for_kbit_training
-#    just upcasted all MoC params to float32, causing dtype mismatches.
-moc.half()
+# 4. Keep the trainable MoC modules in float32 — do NOT call moc.half().
+#    Training these small custom modules in float16 overflows to NaN within
+#    a few steps. prepare_model_for_kbit_training already left them float32;
+#    just make sure the trainable ones stay that way (E1 wraps the frozen
+#    fp16 mm_projector and stays fp16):
+moc.experts[1].float(); moc.experts[2].float(); moc.experts[3].float()
+moc.router.float(); moc.pooler.float()
 
 # 5. PEFT wrapping — must be last.
 lora_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
@@ -678,7 +689,7 @@ model = get_peft_model(model, lora_cfg)
 >
 > - **`upgrade_to_moc` before `get_peft_model`**: `upgrade_to_moc` assigns `model.__class__ = MoCLlavaForCausalLM`. If you call `get_peft_model` first, the model becomes a `PeftModelForCausalLM` wrapper that has no `self.model` attribute at its top level. The subsequent `__class__` reassignment then targets the wrong object, and calling `model.model.embed_tokens(...)` raises `AttributeError: 'MoCLlavaForCausalLM' object has no attribute 'model'`.
 >
-> - **`moc.half()` after `prepare_model_for_kbit_training`**: `prepare_model_for_kbit_training` calls `model.enable_input_require_grads()` and then upcasts every 1D parameter in the model to float32 (for numerical stability during gradient checkpointing). This includes MoC's `q_pool`, router biases, `b_g`, and `tau_g`. Without the `moc.half()` call immediately after, the MoC parameters are float32 while the LLM produces float16 activations — the concat of visual tokens and text embeddings raises a dtype mismatch error.
+> - **Keep the trainable MoC modules in float32 — do NOT call `moc.half()`**: This is the single most important lesson from the actual implementation. Training the small custom modules (router, pooler, E2/E3/E4) in float16 is numerically unstable. The symptom in single-expert mode (`train_single.py --expert E2`) is `Loss nan` from the first logged step; in full MoC mode the symptom is `L_lb=nan` starting at *exactly* the first batch after the first optimizer step (e.g. "batch 4" with `ACCUM_STEPS=4`). The mechanism: float16 weights/gradients in the Q-Former and gating projector overflow `±65504` within a few updates → a NaN gradient appears → `torch.nn.utils.clip_grad_norm_` computes a NaN total-norm and multiplies *every* gradient (including the float32 router's) by NaN → the next forward pass produces a NaN router output → `L_lb` is NaN forever. The fix is to leave these modules in float32 (which `prepare_model_for_kbit_training` already does) and make every expert dtype-transparent (cast `float16` input → `float32`, compute, cast output → `float16`). The expert output is cast back to the LLM's `float16` at the concat boundary (`V.to(dtype=U.dtype)`), so there is no dtype-mismatch error. `E1` wraps the frozen fp16 `mm_projector` and is left fp16 — it is not trained, so it does not overflow.
 
 **Verification:**
 
@@ -690,11 +701,12 @@ Run the full verification with: `python connector/moc.py --full` (requires Colab
 
 > [!warning] Common Pitfalls
 >
-> - `prepare_model_for_kbit_training` upcasts ALL 1D params to float32. Always call `moc.half()` immediately after — skipping this causes dtype mismatch errors on the first forward pass.
+> - **Do NOT train the connector modules in float16.** `prepare_model_for_kbit_training` upcasts the trainable params to float32 — leave them there. Calling `moc.half()` (or `expert.half()` in `train_single.py`) is what produces the `Loss nan` / `L_lb=nan` failures. See the ordering box above for the full mechanism.
 > - `upgrade_to_moc` must be called on the raw `LlavaLlamaForCausalLM`, not on a `PeftModel`. Calling it after `get_peft_model` causes `AttributeError: no attribute 'model'`.
+> - After `get_peft_model`, re-enable `requires_grad` on the trainable MoC modules: `get_peft_model` calls `mark_only_lora_as_trainable()`, which freezes everything whose name lacks `lora_` — silently freezing the router, pooler, and experts. Call `moc.router.requires_grad_(True)`, `moc.pooler.requires_grad_(True)`, and `moc.experts[1..3].requires_grad_(True)` (leave `experts[0]`/E1 frozen).
 > - `question_embeddings` passed to the pooler must come from `embed_tokens`, **before** the LLM's positional encoding is added.
 > - If NaN loss appears after adding QCGP: the L2 normalization in E4 can blow up if `W_q(q)` becomes a near-zero vector. Add `eps=1e-8` to `F.normalize` (already in the reference implementation).
-> - Inside `MixtureOfConnectors.forward`, always detect the module's compute dtype from `self.router.W1.weight.dtype` and cast inputs accordingly — do not assume float16.
+> - Inside `MixtureOfConnectors.forward`, read the router/pooler dtype from `self.router.W1.weight.dtype` (float32) and cast `question_embeddings` to it before pooling. Pass `Z_V` to the experts untouched — they are dtype-transparent and cast internally.
 
 **→ Report mapping:** Methodology — add a new architecture figure showing the full MoC pipeline (router + four experts) to replace or supplement the baseline-only figure. The caption should replace the placeholder "MoC will replace the MLP" annotation.
 

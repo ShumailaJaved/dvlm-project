@@ -13,7 +13,7 @@
 # USAGE IN TRAINING (Task A-1.2 integration):
 #   from connector.question_pooler import QuestionPooler
 #
-#   pooler = QuestionPooler(d=4096).to(device).half()   # match LLM dtype
+#   pooler = QuestionPooler(d=4096).to(device)   # keep float32 (do NOT .half())
 #   question_input_ids = tokenizer(question, ...)['input_ids'][0]  # (T,)
 #   U = model.model.embed_tokens(question_input_ids)    # (T, 4096)
 #   q = pooler(U)                                       # (4096,)
@@ -47,8 +47,10 @@ class QuestionPooler(nn.Module):
         d (int): LLM hidden dimension.  d = 4096 for LLaVA-1.5-7B.
 
     Important:
-        Call .half() on this module when pairing with LLaVA-1.5-7B
-        so that q_pool and U share the float16 compute dtype.
+        Keep this module in float32 (do NOT call .half()).  Cast the
+        float16 embeddings U to q_pool's dtype before pooling instead.
+        Training it in float16 contributes to the NaN overflow described
+        in the Part C ordering notes.
         Do NOT pass U through any LLM layers — use embed_tokens output
         only, before positional encoding is added.
     """

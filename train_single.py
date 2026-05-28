@@ -661,13 +661,17 @@ def train(args):
     print("Applying QLoRA …")
     model = prepare_model_for_kbit_training(model)
 
-    # prepare_model_for_kbit_training upcasts float16 params to float32.
-    # Re-cast trainable expert modules back to float16 to match LLaVA's
-    # float16 compute pipeline (bnb_4bit_compute_dtype=float16).
+    # Keep the trainable expert (and pooler) in float32.  Training these small
+    # custom modules in float16 is numerically unstable — the weights and
+    # gradients overflow within a few optimizer steps and the loss goes NaN
+    # (observed for E2/E3/E4; E1 is frozen so it is unaffected).  The experts
+    # are dtype-transparent: they cast the float16 patch features from the
+    # vision tower to float32 internally and return float16 output, so float32
+    # weights interoperate with LLaVA's float16 pipeline.
     if args.expert in ("E2", "E3", "E4"):
-        expert.to(device).half()
+        expert.to(device=device, dtype=torch.float32)
     if pooler is not None:
-        pooler.to(device).half()
+        pooler.to(device=device, dtype=torch.float32)
 
     lora_cfg = LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05,
