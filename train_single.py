@@ -514,7 +514,7 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
                 ids  = ids[ids != IMAGE_TOKEN_INDEX].unsqueeze(0)
                 imgs = None
 
-            out  = model.generate(input_ids=ids, images=imgs,
+            out  = model.generate(inputs=ids, images=imgs,
                                    max_new_tokens=3, do_sample=False)
             pred = extract_answer(tokenizer.decode(out[0], skip_special_tokens=True))
 
