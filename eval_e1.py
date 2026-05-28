@@ -39,26 +39,35 @@ ANSWER_LETTERS = "ABCDE"
 # Transformers ≥ 4.46 compatibility patch
 # ============================================================
 
-def patch_generate_compat(model) -> None:
+def patch_generate_compat(_model=None) -> None:
     """
-    Transformers ≥ 4.46 adds 'cache_position' (and sometimes
-    'num_logits_to_keep') to the model_inputs dict that is forwarded to
-    model.forward() during generation.  LLaVA's forward() signature does
-    not accept these kwargs and raises TypeError.
+    Transformers ≥ 4.46 passes 'cache_position' (and sometimes
+    'num_logits_to_keep') to LlavaLlamaForCausalLM.forward() during
+    generation, but LLaVA's forward() signature doesn't accept them.
 
-    Fix: wrap prepare_inputs_for_generation on the model instance to strip
-    the unknown keys before they reach forward().  Patching the instance
-    (not the class) keeps the change local to this model object.
+    Root cause: PEFT's PeftModelForCausalLM.generate() overwrites
+    model.prepare_inputs_for_generation with its own version just before
+    calling the inner generate loop — so patching prepare_inputs_for_generation
+    on the PeftModel instance is always clobbered.
+
+    Fix: patch LlavaLlamaForCausalLM.forward() at the CLASS level to accept
+    and silently drop the unknown kwargs before delegating to the original
+    forward.  A guard flag ensures the patch is applied only once.
     """
-    _orig = model.prepare_inputs_for_generation
+    from llava.model.language_model.llava_llama import LlavaLlamaForCausalLM
 
-    def _compat(*args, **kwargs):
-        out = _orig(*args, **kwargs)
-        out.pop("cache_position",      None)
-        out.pop("num_logits_to_keep",  None)
-        return out
+    if getattr(LlavaLlamaForCausalLM, "_transformers_compat_patched", False):
+        return   # already patched — idempotent
 
-    model.prepare_inputs_for_generation = _compat
+    _orig_forward = LlavaLlamaForCausalLM.forward
+
+    def _forward_compat(self, *args, **kwargs):
+        kwargs.pop("cache_position",     None)   # added in transformers ≥ 4.46
+        kwargs.pop("num_logits_to_keep", None)   # added in transformers ≥ 4.45
+        return _orig_forward(self, *args, **kwargs)
+
+    LlavaLlamaForCausalLM.forward = _forward_compat
+    LlavaLlamaForCausalLM._transformers_compat_patched = True
 
 
 # ============================================================

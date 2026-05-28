@@ -60,24 +60,33 @@ WARMUP_FRAC    = 0.03   # fraction of total steps used for linear LR warmup
 # Transformers ≥ 4.46 compatibility patch
 # ============================================================
 
-def patch_generate_compat(model) -> None:
+def patch_generate_compat(_model=None) -> None:
     """
     Transformers ≥ 4.46 passes 'cache_position' (and sometimes
-    'num_logits_to_keep') to model.forward() during generation.
-    LLaVA's forward() signature does not accept these kwargs → TypeError.
+    'num_logits_to_keep') to LlavaLlamaForCausalLM.forward() during
+    generation, but LLaVA's forward() signature doesn't accept them.
 
-    Wraps prepare_inputs_for_generation on the model instance to strip
-    the unknown keys before they reach forward().
+    Root cause: PEFT's generate() overwrites prepare_inputs_for_generation
+    on the model instance right before the inner generate loop — so any
+    instance-level patch on prepare_inputs_for_generation is clobbered.
+
+    Fix: patch LlavaLlamaForCausalLM.forward() at the CLASS level to drop
+    the unknown kwargs before delegating.  Guard flag makes it idempotent.
     """
-    _orig = model.prepare_inputs_for_generation
+    from llava.model.language_model.llava_llama import LlavaLlamaForCausalLM
 
-    def _compat(*args, **kwargs):
-        out = _orig(*args, **kwargs)
-        out.pop("cache_position",     None)
-        out.pop("num_logits_to_keep", None)
-        return out
+    if getattr(LlavaLlamaForCausalLM, "_transformers_compat_patched", False):
+        return
 
-    model.prepare_inputs_for_generation = _compat
+    _orig_forward = LlavaLlamaForCausalLM.forward
+
+    def _forward_compat(self, *args, **kwargs):
+        kwargs.pop("cache_position",     None)
+        kwargs.pop("num_logits_to_keep", None)
+        return _orig_forward(self, *args, **kwargs)
+
+    LlavaLlamaForCausalLM.forward = _forward_compat
+    LlavaLlamaForCausalLM._transformers_compat_patched = True
 
 
 # ============================================================
