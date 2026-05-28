@@ -85,9 +85,18 @@ class MoCRouter(nn.Module):
             torch.Tensor: Routing probabilities r of shape (K,).
                           r.sum() == 1.0 and r_k > 0 for all k.
         """
-        h = F.gelu(self.W1(q))              # (d_r,)  hidden representation
-        r = F.softmax(self.W2(h), dim=-1)   # (K,)    probability distribution
-        return r
+        # Upcast to float32: W1 multiplies q (d=4096) by a (d_r=64, d=4096)
+        # weight matrix — the row-wise dot products each sum 4096 float16
+        # values and can overflow.  float32 accumulation is safe.
+        _orig_dtype = q.dtype
+        q32  = q.float()
+        W1   = self.W1.weight.float()
+        b1   = self.W1.bias.float()
+        W2   = self.W2.weight.float()
+        b2   = self.W2.bias.float()
+        h    = F.gelu(F.linear(q32, W1, b1))        # (d_r,) float32
+        r    = F.softmax(F.linear(h, W2, b2), dim=-1)  # (K,) float32
+        return r.to(_orig_dtype)
 
 
 if __name__ == "__main__":

@@ -453,6 +453,21 @@ def train(args):
 
             # -- Total loss with gradient accumulation scaling --
             loss = (L_CE + LAMBDA_LB * L_lb) / ACCUM_STEPS
+
+            # NaN guard: skip batches with non-finite loss before backward.
+            # A NaN loss.backward() fires NaN gradients into LoRA adapters,
+            # corrupting all subsequent forward passes — much worse than
+            # skipping one batch.  Root cause (float16 overflow in pooler/
+            # router) is fixed above; this is a defensive fallback.
+            if not torch.isfinite(loss):
+                print(
+                    f"  WARNING: non-finite loss "
+                    f"(L_CE={L_CE.item():.4f}  L_lb={L_lb.item():.4f}) "
+                    f"at epoch {epoch+1} batch {batch_idx} — skipping batch"
+                )
+                optimizer.zero_grad()
+                continue
+
             loss.backward()
 
             accum_ce += L_CE.item()

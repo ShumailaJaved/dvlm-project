@@ -87,21 +87,29 @@ class QuestionPooler(nn.Module):
         Returns:
             torch.Tensor: Question vector q of shape (d,).
         """
+        # --- Numerical stability: upcast to float32 ----------------------------
+        # LLaMA token embeddings can have large L2 norms (~10–100 per element).
+        # In float16, the dot product U @ q_pool sums d=4096 values and can
+        # easily exceed float16's max (~65504), producing inf → softmax → NaN.
+        # Upcasting to float32 before the dot product and softmax prevents
+        # overflow. We cast back to the original dtype before returning.
+        _orig_dtype = U.dtype
+        U32      = U.float()           # (T, d) float32
+        q_pool32 = self.q_pool.float() # (d,)   float32
+
         # --- Step 1: score each token against the pooling query ---------------
-        # U @ q_pool  →  (T, d) @ (d,)  =  (T,)
-        # Divide by sqrt(d) to keep scores well-scaled (same as scaled-dot
-        # product attention; prevents softmax from saturating early).
-        scores = U @ self.q_pool / math.sqrt(self.d)   # (T,)
+        # U32 @ q_pool32  →  (T, d) @ (d,)  =  (T,)
+        # Divide by sqrt(d) to keep scores well-scaled (scaled-dot-product
+        # attention convention; prevents softmax from saturating early).
+        scores = U32 @ q_pool32 / math.sqrt(self.d)   # (T,) float32
 
         # --- Step 2: softmax over T positions to get attention weights --------
-        # weights[t] = how much to attend to token t
         weights = F.softmax(scores, dim=0)              # (T,), sums to 1.0
 
         # --- Step 3: weighted sum of token embeddings -------------------------
-        # weights @ U  →  (T,) @ (T, d)  =  (d,)
-        q = weights @ U                                 # (d,)
+        q = weights @ U32                               # (d,) float32
 
-        return q
+        return q.to(_orig_dtype)  # cast back to float16 for LLaVA pipeline
 
 
 # ============================================================
