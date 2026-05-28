@@ -108,35 +108,41 @@ class MixtureOfConnectors(nn.Module):
                                        HAS gradient — needed for L_lb.
                 k_star (int):          Selected expert index ∈ {0, 1, 2, 3}.
         """
-        # ---- Dtype normalisation -----------------------------------------------
-        # prepare_model_for_kbit_training converts float16 params → float32,
-        # and get_peft_model may do additional dtype passes.  Rather than
-        # fighting those conversions, we detect the module's current compute
-        # dtype from the router's first weight and cast both inputs to match.
-        # The caller is responsible for casting V back to its own dtype if
-        # needed (e.g. to float16 before sequence assembly in the LLM).
-        _dtype = self.router.W1.weight.dtype
-        Z_V                = Z_V.to(dtype=_dtype)
-        question_embeddings = question_embeddings.to(dtype=_dtype)
+        # ---- Dtype split: router/pooler vs. experts --------------------------------
+        # The router and pooler must stay in float32 during training to prevent
+        # float16 overflow after the first optimizer step.  (moc.half() converts
+        # all experts to float16 for memory efficiency, then train_moc.py calls
+        # moc.router.float() / moc.pooler.float() to keep them in float32.)
+        # The expert forward still runs in float16 (the expert's own dtype).
+        #
+        # _router_dtype: dtype of router/pooler params (float32 in training)
+        # _expert_dtype: dtype of expert params (float16 after moc.half())
+        _router_dtype = self.router.W1.weight.dtype
+        _expert_dtype = next(self.experts[1].parameters()).dtype
         # -----------------------------------------------------------------------
 
         # Step 1: Pool question embeddings → single question vector q
-        q = self.pooler(question_embeddings)          # (d,)
+        # Cast question_embeddings to _router_dtype (float32) so the pooler
+        # dot-products stay in float32 and cannot overflow.
+        q = self.pooler(question_embeddings.to(dtype=_router_dtype))   # (d,) float32
 
-        # Step 2: Route via question vector
-        r = self.router(q)                            # (K,)
+        # Step 2: Route via question vector (float32 — no overflow risk)
+        r = self.router(q)                            # (K,) float32
 
         # Step 3: Straight-through expert selection
         # argmax is applied to r.detach() so no gradient flows through it.
         # Gradients from L_lb flow back through r directly.
         k_star = torch.argmax(r.detach()).item()       # int, no gradient
 
-        # Step 4: Forward through selected expert
-        # Only E4 (k_star == 3) takes q as an extra argument
+        # Step 4: Forward through selected expert (in _expert_dtype = float16)
+        # Z_V arrives as float16 from the vision tower; cast it to expert dtype
+        # (no-op when expert_dtype == float16, handles float32 at init/verify).
+        Z_V_exp = Z_V.to(dtype=_expert_dtype)
         if k_star == 3:
-            V = self.experts[k_star](Z_V, q)          # ExpertE4(Z_V, q)
+            # E4 (QCGP) needs q; cast q to expert dtype for the gating op
+            V = self.experts[k_star](Z_V_exp, q.to(dtype=_expert_dtype))
         else:
-            V = self.experts[k_star](Z_V)             # ExpertE1/2/3(Z_V)
+            V = self.experts[k_star](Z_V_exp)         # ExpertE1/2/3(Z_V)
 
         # Store routing state for use in training loop (load-balancing loss)
         self._last_r      = r

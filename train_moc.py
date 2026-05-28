@@ -407,7 +407,9 @@ def train(args):
     # ---- 3. Apply QLoRA ------------------------------------------------------
     print("Applying QLoRA …")
     model = prepare_model_for_kbit_training(model)
-    moc.half()   # re-cast after kbit prep upcasted fp16 params to fp32
+    moc.half()         # convert all MoC params to float16 (matches LLM compute dtype)
+    moc.router.float() # but keep router in float32 — float16 overflows after first step
+    moc.pooler.float() # keep pooler in float32 for the same reason
 
     lora_cfg = LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05,
