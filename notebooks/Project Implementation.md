@@ -269,26 +269,78 @@ where $f_k = \frac{1}{B}\sum_{b=1}^{B} \mathbf{1}[k^*_b = k]$ is the fraction of
 
 **A-0.1 Environment Setup**
 
-1. Install dependencies: `bitsandbytes >= 0.41`, `peft >= 0.9`, `accelerate`, `transformers >= 4.37`.
-2. Load LLaVA-1.5-7B in 4-bit NF4 mode:
-    
-    ```python
-    from transformers import BitsAndBytesConfigbnb_config = BitsAndBytesConfig(    load_in_4bit=True,    bnb_4bit_quant_type="nf4",    bnb_4bit_compute_dtype=torch.float16,    bnb_4bit_use_double_quant=True)
-    ```
-    
-3. Apply `prepare_model_for_kbit_training(model)` before adding LoRA.
-4. **Verify:** print GPU memory usage before and after loading. Confirm base model fits under 6 GB.
+Run these installation cells in order in Colab, then **restart the runtime manually** (Runtime → Restart Session) before importing anything else:
+
+```bash
+pip install "bitsandbytes>=0.41" "peft>=0.9" accelerate "transformers>=4.37" datasets einops tqdm
+pip install --upgrade torchao
+pip install --no-deps -e ./LLaVA
+```
+
+> [!warning] LLaVA MUST be installed with `--no-deps`
+> Running `pip install -e ./LLaVA` without `--no-deps` causes pip to downgrade `torch` and `torchao` to versions incompatible with the Colab GPU runtime. This silently breaks CUDA in every subsequent cell — `torch.cuda.is_available()` returns `True` but GPU ops crash at runtime. Always use `--no-deps` and verify with `import torch; print(torch.cuda.is_available())` after the runtime restart.
+
+Load LLaVA-1.5-7B in 4-bit NF4 mode using an explicit `BitsAndBytesConfig`:
+
+```python
+from transformers import BitsAndBytesConfig
+from llava.model.builder import load_pretrained_model
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.float16,
+    bnb_4bit_use_double_quant=True,
+)
+
+tokenizer, model, image_processor, context_len = load_pretrained_model(
+    model_path="liuhaotian/llava-v1.5-7b",
+    model_base=None,
+    model_name="llava-v1.5-7b",
+    quantization_config=bnb_config,   # ← pass config explicitly
+)
+```
+
+> [!warning] Do NOT use `load_4bit=True`
+> LLaVA's `load_pretrained_model` has a convenience `load_4bit=True` flag. On newer `transformers` versions this flag propagates as an unexpected keyword argument into the model `__init__`, raising a `TypeError`. Use `quantization_config=bnb_config` directly instead — it is explicit and version-stable.
+
+Apply `prepare_model_for_kbit_training(model)` **before** adding LoRA adapters. For MoC training the ordering is more involved — see Task C-3 for the exact five-step sequence.
+
+**Verify:** Print GPU memory before and after loading. The 4-bit base model fits under 6 GB. Full training footprint with gradient checkpointing stays under 15 GB on an A100 (observed peak: 12.4 GB for E1).
 
 **A-0.2 Full Dataset Pipeline**
 
-5. Load all 6 218 training samples (previously limited to 2 000). Keep the same image-only filter.
-6. Confirm split sizes match Table 1 of the midterm (6 218 train / 500 val / 1 000 test).
-7. Compute the number of gradient steps for 2 epochs with effective batch size 16. Log this number.
+Load all 6 218 training samples from `derek-thomas/ScienceQA`. Apply the image-only filter (`example["image"] is not None`):
+
+```python
+from datasets import load_dataset
+
+raw   = load_dataset("derek-thomas/ScienceQA")
+train = raw["train"].filter(lambda x: x["image"] is not None)
+val   = raw["validation"].filter(lambda x: x["image"] is not None)
+test  = raw["test"].filter(lambda x: x["image"] is not None)
+```
+
+Actual image-only split sizes (confirmed on HuggingFace Hub):
+
+| Split | Count |
+|---|---|
+| Train | 6,218 |
+| Validation | 2,097 |
+| Test | 2,017 |
+
+> [!warning] Dataset split sizes differ from the midterm spec
+> The assignment states "500 val / 1 000 test" — those were _evaluation subsets_ used in the midterm, not the actual dataset splits. The real image-only splits are 2,097 val and 2,017 test. In the training scripts, `--n_eval 200` or `--n_eval 500` flags evaluate on a random subset for speed during development. Final reported numbers must use the full test split (2,017 samples).
+
+Gradient step count for 2 epochs with physical batch size 4 and 4 gradient-accumulation steps (effective batch 16): `ceil(6218 / 16) × 2 = 389 × 2 = 778` optimizer steps.
 
 > [!warning] Common Pitfalls
-> 
-> - `bitsandbytes` requires CUDA 11.x+ and a Linux environment. Do not attempt this on Windows.
+>
+> - `bitsandbytes` requires CUDA 11.x+ and a Linux environment. Do not attempt on Windows or macOS.
+> - Install LLaVA with `--no-deps` or CUDA silently breaks due to torch/torchao version conflicts.
+> - Use `quantization_config=bnb_config`, not `load_4bit=True` — the latter breaks on newer `transformers`.
 > - Call `prepare_model_for_kbit_training` _before_ `get_peft_model` — wrong order causes gradient issues.
+> - Restart the Colab runtime after the `pip install` cells and before importing any module.
 > - The CLIP encoder and the original MLP projector must remain frozen throughout. Only LoRA adapters and new connector modules are trainable.
 
 **→ Report mapping:** Methodology section — update the "LoRA Fine-Tuning" subsection with the new QLoRA configuration and training setup. The "Current Limitations" paragraph from the midterm must be removed.
@@ -543,7 +595,7 @@ $$\mathcal{L} = \mathcal{L}_\text{CE} + \lambda_\text{lb},\mathcal{L}_\text{lb},
 
 > [!abstract] Task C-3: Replace the static MLP projector with the full MoC system
 
-This is the most architecturally sensitive task. The goal is to intercept the LLaVA forward pass at the point where the MLP projector is called, replace it with the MoC routing system, and handle variable-length outputs.
+This is the most architecturally sensitive task. The approach is to subclass `LlavaLlamaForCausalLM` and override `prepare_inputs_labels_for_multimodal` to call the MoC routing system in place of `mm_projector`. The implementation lives in `connector/moc.py`.
 
 **Step 1: Assemble the MoC module**
 
@@ -552,49 +604,97 @@ class MixtureOfConnectors(nn.Module):
     def __init__(self, e1, e2, e3, e4, router, pooler):
         super().__init__()
         self.experts = nn.ModuleList([e1, e2, e3, e4])
-        self.router = router
-        self.pooler = pooler  # QuestionPooler
+        self.router  = router
+        self.pooler  = pooler
 
     def forward(self, Z_V, question_embeddings):
-        q = self.pooler(question_embeddings)          # (d,)
-        r = self.router(q)                            # (4,)
-        k_star = torch.argmax(r.detach()).item()
-        if k_star == 3:  # E4 needs q
+        # Detect the module's current compute dtype from the router's weight.
+        # This is necessary because prepare_model_for_kbit_training upcasts
+        # all 1D parameters (biases, layer norms, q_pool) to float32, but
+        # the LLM forward operates in float16. The MoC is re-cast to float16
+        # after kbit prep, but code that runs before that re-cast must handle
+        # mixed dtypes gracefully.
+        _dtype = self.router.W1.weight.dtype
+        Z_V                = Z_V.to(dtype=_dtype)
+        question_embeddings = question_embeddings.to(dtype=_dtype)
+
+        q      = self.pooler(question_embeddings)   # (d,)
+        r      = self.router(q)                     # (4,)
+        k_star = torch.argmax(r.detach()).item()    # STE — no grad through argmax
+
+        if k_star == 3:   # E4 needs q as an extra argument
             V = self.experts[k_star](Z_V, q)
         else:
             V = self.experts[k_star](Z_V)
+
         return V, r, k_star
 ```
 
 **Step 2: Handle variable-length visual token sequences**
 
-$E_1$ and $E_4$ output 576 tokens. $E_2$ outputs 32. $E_3$ outputs 1. The LLM concatenates visual tokens with question tokens. To handle this cleanly, compute the attention mask dynamically based on `V.shape[0]`:
+$E_1$ and $E_4$ output 576 tokens. $E_2$ outputs 32. $E_3$ outputs 1. Build `inputs_embeds` dynamically based on `V.shape[0]`. Do **not** pad shorter sequences to 576 — the LLM's self-attention handles variable-length sequences natively via the attention mask.
+
+When concatenating visual tokens `V` with text embeddings inside `prepare_inputs_labels_for_multimodal`, cast `V` back to the LLM's dtype before the concat:
 
 ```python
-# After getting V from MoC:
-visual_len = V.shape[0]   # 576, 32, or 1
-# Concatenate: [visual tokens | question tokens]
-inputs_embeds = torch.cat([V, question_embeds], dim=0).unsqueeze(0)
-attention_mask = torch.ones(1, visual_len + question_len, device=device)
+cur_new_input_embeds.append(V.to(device=self.device, dtype=U.dtype))
 ```
 
-Do **not** pad shorter sequences to 576 — this wastes computation and may confuse the LLM with meaningless tokens. The LLM's self-attention handles variable-length sequences natively via the attention mask.
+**Step 3: Subclass and upgrade — CRITICAL ordering**
 
-**Step 3: Monkey-patch or subclass**
+Subclass `LlavaLlamaForCausalLM` to override `prepare_inputs_labels_for_multimodal`. The upgrade is done with a `__class__` reassignment via `upgrade_to_moc(model)` so that the already-loaded weights are reused without redownloading the model. This approach is used to avoid reloading the model from disk.
 
-The cleanest approach without modifying LLaVA's source code: subclass `LlavaForCausalLM` and override the `forward` method to call `MixtureOfConnectors` in place of `mm_projector`. Alternatively, replace `model.model.mm_projector` in-place with a `nn.Identity` and handle projection inside your custom forward loop.
+The five steps **must** happen in this exact order:
+
+```python
+from connector.moc import upgrade_to_moc, build_moc
+
+# 1. Class surgery — while the model is still LlavaLlamaForCausalLM,
+#    before PEFT wraps it in a PeftModelForCausalLM shell.
+model = upgrade_to_moc(base_model)
+
+# 2. Build and attach MoC — mm_projector is still directly accessible here.
+moc = build_moc(model).to(device)   # do NOT call .half() yet
+model.set_moc(moc)
+
+# 3. kbit prep — MUST come before get_peft_model.
+#    This upcasts all 1D parameters (biases, LayerNorm weights, q_pool,
+#    router biases) to float32 for gradient-checkpointing stability.
+model = prepare_model_for_kbit_training(model)
+
+# 4. Re-cast MoC to float16 — because the LLaVA forward operates in float16
+#    (bnb_4bit_compute_dtype=float16) and prepare_model_for_kbit_training
+#    just upcasted all MoC params to float32, causing dtype mismatches.
+moc.half()
+
+# 5. PEFT wrapping — must be last.
+lora_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
+                      target_modules=["q_proj","k_proj","v_proj","o_proj"],
+                      bias="none", task_type="CAUSAL_LM")
+model = get_peft_model(model, lora_cfg)
+```
+
+> [!warning] Why this ordering is not negotiable
+>
+> - **`upgrade_to_moc` before `get_peft_model`**: `upgrade_to_moc` assigns `model.__class__ = MoCLlavaForCausalLM`. If you call `get_peft_model` first, the model becomes a `PeftModelForCausalLM` wrapper that has no `self.model` attribute at its top level. The subsequent `__class__` reassignment then targets the wrong object, and calling `model.model.embed_tokens(...)` raises `AttributeError: 'MoCLlavaForCausalLM' object has no attribute 'model'`.
+>
+> - **`moc.half()` after `prepare_model_for_kbit_training`**: `prepare_model_for_kbit_training` calls `model.enable_input_require_grads()` and then upcasts every 1D parameter in the model to float32 (for numerical stability during gradient checkpointing). This includes MoC's `q_pool`, router biases, `b_g`, and `tau_g`. Without the `moc.half()` call immediately after, the MoC parameters are float32 while the LLM produces float16 activations — the concat of visual tokens and text embeddings raises a dtype mismatch error.
 
 **Verification:**
 
-1. Run a single forward pass with a test image and question. Confirm loss is a valid scalar (not NaN or inf).
-2. Confirm that changing the question (same image) causes a different expert to be selected at least occasionally over 100 random questions.
-3. Print the full parameter count: frozen (CLIP + base LLM), quantized (LLM base weights), and trainable (LoRA + connector experts + router + pooler).
+1. Run a single forward pass with a test image and question. Confirm loss is a finite scalar (not NaN, not inf).
+2. Confirm that 100 random question vectors (after perturbing W2) cause diverse routing — not all to the same expert. (At init with `W2=0`, all route to expert 0 by argmax tie-breaking; this is expected and load-balancing will fix it during training.)
+3. Print the full parameter count using `print_parameter_counts(model, moc)`: frozen (CLIP + base LLM), quantized (4-bit LLM weights), and trainable (LoRA + connector experts + router + pooler).
+
+Run the full verification with: `python connector/moc.py --full` (requires Colab A100, loads the real model).
 
 > [!warning] Common Pitfalls
-> 
-> - `mm_projector` is called inside `prepare_inputs_labels_for_multimodal` in the original LLaVA codebase. If you subclass, make sure your override calls this correctly.
+>
+> - `prepare_model_for_kbit_training` upcasts ALL 1D params to float32. Always call `moc.half()` immediately after — skipping this causes dtype mismatch errors on the first forward pass.
+> - `upgrade_to_moc` must be called on the raw `LlavaLlamaForCausalLM`, not on a `PeftModel`. Calling it after `get_peft_model` causes `AttributeError: no attribute 'model'`.
 > - `question_embeddings` passed to the pooler must come from `embed_tokens`, **before** the LLM's positional encoding is added.
-> - If you see NaN loss after adding QCGP: the L2 normalization in E4 can blow up if `W_q(q)` becomes a zero vector. Add `eps=1e-8` to `F.normalize`.
+> - If NaN loss appears after adding QCGP: the L2 normalization in E4 can blow up if `W_q(q)` becomes a near-zero vector. Add `eps=1e-8` to `F.normalize` (already in the reference implementation).
+> - Inside `MixtureOfConnectors.forward`, always detect the module's compute dtype from `self.router.W1.weight.dtype` and cast inputs accordingly — do not assume float16.
 
 **→ Report mapping:** Methodology — add a new architecture figure showing the full MoC pipeline (router + four experts) to replace or supplement the baseline-only figure. The caption should replace the placeholder "MoC will replace the MLP" annotation.
 
@@ -628,32 +728,49 @@ Use two separate parameter groups with different learning rates — connector ex
 
 > [!abstract] Task D-1: Train and evaluate each expert in isolation
 
-For each expert $k \in {1, 2, 3, 4}$: plug `phi_k` in place of the MLP projector, apply QLoRA to the LLM backbone, train for 2 epochs on all 6 218 samples, and evaluate on 1 000 test samples.
+For each expert $k \in {1, 2, 3, 4}$: plug `phi_k` in place of the MLP projector, apply QLoRA to the LLM backbone, train for 2 epochs on all 6 218 samples, and evaluate on a test subset.
+
+**Training script:** The training logic lives in `train_single.py` at the project root (not in a `training/` subfolder). Run it from the Colab working directory:
+
+```bash
+python train_single.py --expert E1 --epochs 2 --batch 4 --n_eval 500 --out_dir results/single
+python train_single.py --expert E2 --epochs 2 --batch 4 --n_eval 500 --out_dir results/single
+python train_single.py --expert E3 --epochs 2 --batch 4 --n_eval 500 --out_dir results/single
+python train_single.py --expert E4 --epochs 2 --batch 4 --n_eval 500 --out_dir results/single
+```
+
+Key flags:
+- `--batch 4` with 4 gradient-accumulation steps → effective batch 16
+- `--n_eval N` evaluates on a random N-sample subset of the test split (use 500 for table, 200 for quick debug)
+- Outputs: `results/single/single_expert_{EXPERT}.json` (metrics), `results/single/ckpt_{EXPERT}/` (PEFT checkpoint), `results/single/log_{EXPERT}.csv` (step log)
 
 For each run, record:
 
 |Metric|Description|
 |---|---|
 |`Acc_image`|Accuracy on image + question|
-|`Acc_text`|Accuracy on question only (strip image token)|
+|`Acc_text`|Accuracy on question only (image token stripped)|
 |$\Delta_v$|`Acc_image - Acc_text`|
 |Training time|Wall-clock hours|
 |Peak VRAM|GB|
 
-Fill in Table D-1:
+Fill in Table D-1 (E1 already completed):
 
 **Table D-1: Single-expert ablation results.**
 
 |Expert|Image Acc. (%)|Text Acc. (%)|$\Delta_v$|Time (h)|VRAM (GB)|
 |---|---|---|---|---|---|
-|E1 (MLP)|—|—|—|—|—|
+|E1 (MLP)|65.6|38.2|27.4|—|12.4|
 |E2 (Q-Former)|—|—|—|—|—|
 |E3 (global token)|—|—|—|—|—|
 |E4 (QCGP)|—|—|—|—|—|
 
-> [!tip] You can run E1 using the midterm's LoRA fine-tuned checkpoint (just retrain on the full dataset to make it comparable). The E1 entry is your updated baseline.
+> [!warning] Evaluation and training are separate passes
+> The training script may have initial bugs in the inline evaluation loop (the eval loop was fixed post-hoc for E1). If evaluation numbers look wrong after training completes, save the PEFT checkpoint and run a separate evaluation script against it. The key thing to preserve is the checkpoint — training cannot be undone once Colab disconnects.
 
-**→ Report mapping:** Results section — this is the core ablation table. Every number in this table earns a sentence of analysis. The key claim: E4 should show higher $\Delta_v$ than E1, confirming the gate forces genuine visual grounding.
+> [!tip] Save results to Google Drive immediately after each run — Colab sessions expire and all local files are lost. Run the copy cell right after the training cell, before moving on to the next expert.
+
+**→ Report mapping:** Results section — this is the core ablation table. Every number earns a sentence of analysis. The key claim: E4 should show higher $\Delta_v$ than E1, confirming the gate forces genuine visual grounding.
 
 ---
 
@@ -661,14 +778,22 @@ Fill in Table D-1:
 
 > [!abstract] Task D-2: Train the joint MoC system with load-balancing
 
-Use the MoC module from Task C-3. Train for 2–3 epochs. Log every 100 steps:
+Use the MoC module from Task C-3. The training script is `train_moc.py` at the project root:
 
+```bash
+python train_moc.py --epochs 2 --batch 4 --val_every 750 --n_val 200 --n_test 500 --out_dir results/moc
+```
+
+Key flags:
+- `--val_every 750` runs validation every 750 steps
+- `--n_val 200` evaluates on 200 validation samples at each checkpoint
+- `--n_test 500` evaluates on 500 test samples at the final checkpoint
+
+Log every 100 steps:
 - Cross-entropy loss $\mathcal{L}_\text{CE}$
 - Load-balancing loss $\mathcal{L}_\text{lb}$
 - Per-expert selection count (running total): $n_1, n_2, n_3, n_4$
 - $\tau_g$ value (from E4)
-
-At evaluation checkpoints (every 500 steps): run full accuracy + $\Delta_v$ on 500 validation samples.
 
 Save the best checkpoint by validation accuracy.
 
@@ -682,7 +807,7 @@ Save the best checkpoint by validation accuracy.
 
 > [!abstract] Task E-1: Compile all results into a unified comparison table
 
-After all runs in Part D, fill in Table E-1:
+After all runs in Part D, fill in Table E-1. Results are on the ScienceQA image-only test split (n = 2,017 full, or the `--n_test` subset used in training scripts).
 
 **Table E-1: Complete results on ScienceQA image-only test set.**
 
@@ -690,7 +815,7 @@ After all runs in Part D, fill in Table E-1:
 |---|---|---|---|
 |Zero-shot LLaVA-1.5-7B (midterm)|63.5|56.0|7.5|
 |LoRA fine-tuned E1 (midterm, 2k samples)|62.6|51.0|11.6|
-|QLoRA fine-tuned E1 (full 6 218 samples)|—|—|—|
+|QLoRA fine-tuned E1 (full 6 218 samples)|65.6|38.2|27.4|
 |QLoRA fine-tuned E2|—|—|—|
 |QLoRA fine-tuned E3|—|—|—|
 |QLoRA fine-tuned E4 (QCGP)|—|—|—|
@@ -704,7 +829,7 @@ After all runs in Part D, fill in Table E-1:
 
 > [!abstract] Task E-2: Analyze which expert the router selects and for what questions
 
-After MoC training, run the full 1 000-sample test set through the router (forward pass only, no generation). Record `k_star` for each sample.
+After MoC training, run the test set through the router (forward pass only, no generation). Record `k_star` for each sample. Use the full 2,017-sample test split or the `--n_test` subset used during training (at least 500 samples for meaningful statistics).
 
 **E-2.1 Overall distribution**
 
@@ -827,52 +952,86 @@ Identify: which subject has the largest $\Delta_v$? Which has the smallest? Does
 
 ## 9 Project File Structure
 
-Organize your code as follows. Every person's code should slot into the same structure — agree on interfaces (especially `forward()` signatures) before coding independently.
+The actual structure of the repository. Training scripts live at the project root (not in a `training/` subfolder), and evaluation scripts are still to be created (Task E).
 
 ```
-moc_project/
+dvlm-project/
 ├── connector/
-│   ├── expert_e1.py        # ExpertE1 (MLP wrapper)
-│   ├── expert_e2.py        # ExpertE2 (Q-Former)
-│   ├── expert_e3.py        # ExpertE3 (global token)
-│   ├── expert_e4.py        # ExpertE4 (QCGP)
-│   ├── question_pooler.py  # QuestionPooler
-│   ├── router.py           # MoCRouter
-│   └── moc.py              # MixtureOfConnectors (assembles all above)
+│   ├── __init__.py
+│   ├── expert_e1.py        # ExpertE1 — MLP wrapper (frozen pretrained projector)
+│   ├── expert_e2.py        # ExpertE2 — Q-Former cross-attention (32 tokens)
+│   ├── expert_e3.py        # ExpertE3 — Attention-pooled global token (1 token)
+│   ├── expert_e4.py        # ExpertE4 — QCGP question-conditioned gating (576 tokens)
+│   ├── question_pooler.py  # QuestionPooler — attention pooling for question vector q
+│   ├── router.py           # MoCRouter — lightweight 2-layer MLP router
+│   └── moc.py              # MixtureOfConnectors + MoCLlavaForCausalLM + upgrade_to_moc
 ├── losses/
-│   └── load_balance.py     # load_balancing_loss()
-├── training/
-│   ├── train_single.py     # Task D-1: single-expert training loop
-│   └── train_moc.py        # Task D-2: full MoC training loop
+│   ├── __init__.py
+│   └── load_balance.py     # load_balancing_loss() + LAMBDA_LB constant
 ├── eval/
-│   ├── evaluate.py         # Acc_image, Acc_text, Delta_v
-│   ├── router_analysis.py  # Task E-2: router distribution
-│   ├── gate_heatmap.py     # Task E-3: alpha_i visualization
-│   ├── failure_analysis.py # Task E-4: three-bucket classification
-│   └── tau_analysis.py     # Task E-5: tau_g logging
-└── results/
-    ├── figures/            # All saved plots
-    └── tables/             # All saved CSVs
+│   └── __init__.py         # ← evaluation scripts for Task E go here
+├── results/
+│   ├── single/
+│   │   └── single_expert_E1.json   # E1 results (complete)
+│   ├── figures/            # Saved plots (Task E)
+│   └── tables/             # Saved CSVs (Task E)
+├── notebooks/
+│   ├── Verifications_Task_A_C.ipynb   # Shape + routing checks for all modules
+│   ├── train_single_experts.ipynb     # Colab notebook: single-expert runs
+│   └── Full_MoC_Training.ipynb        # Colab notebook: full MoC training run
+├── setup_qlora.py          # Task A-0: QLoRA setup, dataset loading, step count
+├── train_single.py         # Task D-1: single-expert training loop (at project root)
+└── train_moc.py            # Task D-2: full MoC training loop (at project root)
+```
+
+> [!note] Verification scripts are standalone
+> Each module (`expert_e1.py`, `expert_e2.py`, …, `router.py`, `question_pooler.py`, `load_balance.py`) contains its own `__main__` verification block. Run any of them directly with `python connector/expert_e1.py` etc. from the project root. The MoC verification requires a loaded LLaVA model: `python connector/moc.py --full` (Colab A100 only).
+
+**Evaluation scripts still needed (Task E):**
+
+```
+eval/
+├── router_analysis.py  # Task E-2: bar chart of expert selection frequency
+├── gate_heatmap.py     # Task E-3: alpha_i heatmap overlaid on image
+├── failure_analysis.py # Task E-4: three-bucket error classification
+├── tau_analysis.py     # Task E-5: tau_g vs training step plot
+└── subject_breakdown.py # Task E-6: per-subject accuracy and Delta_v
 ```
 
 ---
 
 ## 10 Minimal Deliverables Checklist
 
-Before the final report submission, confirm:
+Track status as work progresses:
 
-- [ ] QLoRA training runs on Linux without OOM
-- [ ] All four experts pass their shape and gradient verification checks
-- [ ] Router outputs approximately uniform distribution at initialization
-- [ ] Load-balancing loss reaches `W2.grad is not None` after first backward
+**Infrastructure and module implementation (Parts A–C) — complete**
+- [x] QLoRA training runs on Linux (A100) without OOM — peak VRAM 12.4 GB
+- [x] All four experts pass shape and gradient verification checks
+- [x] Router outputs approximately uniform distribution at initialization
+- [x] Load-balancing loss reaches `W2.grad is not None` after first backward
+- [x] MoC integration verified: finite loss, diverse routing, correct parameter counts
+- [x] Critical five-step upgrade ordering documented and tested
+
+**Training (Part D) — in progress**
+- [x] E1 single-expert run complete (Image Acc 65.6%, Text Acc 38.2%, Δv 27.4%)
+- [ ] E2 single-expert run
+- [ ] E3 single-expert run
+- [ ] E4 single-expert run
 - [ ] Table D-1 fully populated (4 single-expert runs)
+- [ ] Full MoC training run complete
 - [ ] Table E-1 fully populated (MoC run)
+
+**Ablations and analysis (Part E) — not started**
 - [ ] Router distribution bar chart generated (Task E-2)
+- [ ] Subject-level stacked bar chart (Task E-2.2)
 - [ ] At least 4 gate heatmap pairs saved (Task E-3)
-- [ ] 100-sample failure classification complete with bucket counts (Task E-4)
+- [ ] 100-sample failure classification with bucket counts (Task E-4)
+- [ ] CoT rescue re-prompting of the 100 error cases (Task E-4)
 - [ ] $\tau_g$ convergence plot saved (Task E-5)
 - [ ] Subject-level Table E-2 populated (Task E-6)
+
+**Paper fixes — not started**
 - [ ] All `equation*` in Methodology switched to numbered `equation`
-- [ ] Router matrix dimensions added to paper
+- [ ] Router matrix dimensions added ($W_r^{(1)} \in \mathbb{R}^{d_r \times d}$, $W_r^{(2)} \in \mathbb{R}^{4 \times d_r}$)
 - [ ] MoC architecture figure added to paper
 - [ ] Discussion and Conclusion sections drafted
