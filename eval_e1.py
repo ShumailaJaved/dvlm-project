@@ -141,7 +141,12 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
                 ids  = ids[ids != IMAGE_TOKEN_INDEX].unsqueeze(0)
                 imgs = None
 
+            # attention_mask must be explicit: transformers ≥ 4.46 calls
+            # attention_mask.new_ones(...) in _update_model_kwargs_for_generation
+            # and crashes if attention_mask is None.
+            attn_mask = torch.ones_like(ids)
             out  = model.generate(inputs=ids, images=imgs,
+                                   attention_mask=attn_mask,
                                    max_new_tokens=3, do_sample=False)
             pred = extract_answer(tokenizer.decode(out[0], skip_special_tokens=True))
 
