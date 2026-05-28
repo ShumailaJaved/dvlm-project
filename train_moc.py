@@ -13,7 +13,7 @@
 #   --lr_lora   5e-5   (default: 5e-5, learning rate for LoRA adapters)
 #   --batch     4      (default: 4 per device; accum=4 → effective batch=16)
 #   --val_every 750    (default: 750 steps between validation evaluations)
-#   --n_val     200    (default: 200 validation samples per checkpoint eval)
+#   --n_val     500    (default: 500 validation samples per checkpoint eval)
 #   --n_test    500    (default: 500 test samples for final evaluation)
 #   --out_dir   results
 #
@@ -311,13 +311,13 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
             # attention_mask.new_ones(...) in _update_model_kwargs_for_generation
             # and crashes if attention_mask is None.
             attn_mask  = torch.ones_like(ids)
-            input_len  = ids.shape[1]          # used to slice off prompt tokens below
+            MAX_NEW    = 3
             out  = model.generate(inputs=ids, images=imgs,
                                    attention_mask=attn_mask,
-                                   max_new_tokens=3, do_sample=False)
-            # Decode only the newly generated tokens (not the full prompt).
-            # out[0] = (prompt_tokens + new_tokens,); slice from input_len onward.
-            new_tokens = out[0][input_len:]
+                                   max_new_tokens=MAX_NEW, do_sample=False)
+            # LLaVA routes through inputs_embeds so out[0] may not contain
+            # input tokens at the front — slice from the tail instead.
+            new_tokens = out[0][-MAX_NEW:]
             pred = extract_answer(tokenizer.decode(new_tokens, skip_special_tokens=True))
 
             if with_img:
@@ -671,7 +671,7 @@ if __name__ == "__main__":
                         help="Per-device batch size (accum=4 → effective batch=16).")
     parser.add_argument("--val_every", type=int,  default=750,
                         help="Run validation every N optimizer steps.")
-    parser.add_argument("--n_val",    type=int,   default=200,
+    parser.add_argument("--n_val",    type=int,   default=500,
                         help="Number of validation samples to evaluate at each checkpoint.")
     parser.add_argument("--n_test",   type=int,   default=500,
                         help="Number of test samples for final evaluation.")

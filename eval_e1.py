@@ -277,8 +277,8 @@ if __name__ == "__main__":
         help="Path to the saved PEFT checkpoint directory.",
     )
     parser.add_argument(
-        "--n_eval", type=int, default=200,
-        help="Number of test samples to evaluate on (default: 200).",
+        "--n_eval", type=int, default=500,
+        help="Number of test samples to evaluate on (default: 500).",
     )
     parser.add_argument(
         "--out_dir", type=str, default="results/single",
