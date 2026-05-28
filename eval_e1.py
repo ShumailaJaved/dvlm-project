@@ -89,7 +89,7 @@ def patch_generate_compat(_model=None) -> None:
 # Helpers (duplicated from train_single.py to keep script self-contained)
 # ============================================================
 
-def build_prompt(sample: dict, with_image: bool = True) -> tuple:
+def build_prompt(sample: dict, with_image: bool = True, for_eval: bool = False) -> tuple:
     from llava.constants import DEFAULT_IMAGE_TOKEN
     from llava.conversation import conv_templates
 
@@ -104,7 +104,10 @@ def build_prompt(sample: dict, with_image: bool = True) -> tuple:
     )
     conv = conv_templates["vicuna_v1"].copy()
     conv.append_message(conv.roles[0], user_msg)
-    conv.append_message(conv.roles[1], answer_letter)
+    if for_eval:
+        conv.append_message(conv.roles[1], None)  # let the model generate
+    else:
+        conv.append_message(conv.roles[1], answer_letter)
     return conv.get_prompt(), answer_letter
 
 
@@ -114,6 +117,9 @@ def extract_answer(text: str) -> str:
         m = re.search(pat, text, re.IGNORECASE)
         if m:
             return m.group(1).upper()
+    # fallback: first character if it's a valid option letter
+    if text and text[0].upper() in ANSWER_LETTERS:
+        return text[0].upper()
     return ""
 
 
@@ -141,7 +147,7 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
         gt = ANSWER_LETTERS[item["answer"]]
 
         for with_img in (True, False):
-            prompt, _ = build_prompt(item, with_image=with_img)
+            prompt, _ = build_prompt(item, with_image=with_img, for_eval=True)
             ids = tokenizer_image_token(
                 prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt"
             ).to(device)
@@ -163,7 +169,8 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
             out  = model.generate(inputs=ids, images=imgs,
                                    attention_mask=attn_mask,
                                    max_new_tokens=3, do_sample=False)
-            pred = extract_answer(tokenizer.decode(out[0], skip_special_tokens=True))
+            new_tokens = out[0][ids.shape[1]:]
+            pred = extract_answer(tokenizer.decode(new_tokens, skip_special_tokens=True))
 
             if with_img:
                 correct_img += int(pred == gt)
