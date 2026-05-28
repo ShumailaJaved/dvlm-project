@@ -9,7 +9,7 @@
 #
 # OPTIONAL FLAGS:
 #   --epochs    2      (default: 2)
-#   --lr_moc    2e-4   (default: 2e-4, learning rate for all MoC params)
+#   --lr_moc    2e-4   (default: 2e-4, learning rate for trainable MoC params)
 #   --lr_lora   5e-5   (default: 5e-5, learning rate for LoRA adapters)
 #   --batch     4      (default: 4 per device; accum=4 → effective batch=16)
 #   --val_every 750    (default: 750 steps between validation evaluations)
@@ -54,7 +54,7 @@ ANSWER_LETTERS = "ABCDE"
 MAX_LEN        = 512
 ACCUM_STEPS    = 4      # gradient accumulation; effective_batch = batch * ACCUM_STEPS
 WARMUP_FRAC    = 0.03   # fraction of steps used for linear LR warmup
-LAMBDA_LB      = 0.01   # load-balancing loss coefficient (L_total = L_CE + λ * L_lb)
+LAMBDA_LB      = 0.1    # load-balancing loss coefficient (L_total = L_CE + λ * L_lb)
 K_EXPERTS      = 4      # number of MoC experts
 
 
@@ -340,6 +340,24 @@ def train(args):
         bias="none", task_type="CAUSAL_LM",
     )
     model = get_peft_model(model, lora_cfg)
+
+    # ---- CRITICAL: restore MoC gradients after PEFT freezing ----------------
+    # get_peft_model calls mark_only_lora_as_trainable(), which sets
+    # requires_grad=False on ALL parameters whose name does not contain
+    # "lora_".  This silently freezes the router, pooler, and experts,
+    # so r.requires_grad becomes False and L_lb has no gradient path to
+    # the router — causing permanent routing collapse.
+    # Fix: explicitly re-enable requires_grad for every trainable MoC
+    # component.  E1 (experts[0]) wraps the frozen mm_projector and has
+    # zero trainable parameters; leave it frozen.
+    moc.router.requires_grad_(True)          # MoCRouter (W1, W2)
+    moc.pooler.requires_grad_(True)          # QuestionPooler (q_pool)
+    moc.experts[1].requires_grad_(True)      # ExpertE2 (Q-Former)
+    moc.experts[2].requires_grad_(True)      # ExpertE3 (global token)
+    moc.experts[3].requires_grad_(True)      # ExpertE4 (QCGP)
+    # moc.experts[0] stays frozen — ExpertE1 wraps the pretrained mm_projector
+    # -------------------------------------------------------------------------
+
     model.print_trainable_parameters()
 
     # Convenience reference to the inner MoCLlavaForCausalLM for routing logs
@@ -362,9 +380,11 @@ def train(args):
 
     # ---- 5. Optimizer and LR scheduler ---------------------------------------
     # Two parameter groups:
-    #   MoC params (experts + router + pooler) → higher lr (args.lr_moc)
+    #   MoC params (router + pooler + E2 + E3 + E4) → higher lr (args.lr_moc)
     #   LoRA adapter params → lower lr (args.lr_lora)
-    moc_params  = list(moc.parameters())
+    # Note: we collect only params with requires_grad=True from moc so that
+    # E1's frozen mm_projector weights are excluded automatically.
+    moc_params  = [p for p in moc.parameters() if p.requires_grad]
     lora_params = [p for n, p in model.named_parameters()
                    if p.requires_grad and "lora_" in n]
 
