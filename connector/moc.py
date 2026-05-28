@@ -25,9 +25,9 @@
 #       quantization_config=get_bnb_config())
 #   model = upgrade_to_moc(base_model)        # 1. class surgery FIRST
 #   moc   = build_moc(model).to(device)
-#   model.set_moc(moc)                        # 2. attach MoC (no .half() yet)
+#   model.set_moc(moc)                        # 2. attach MoC
 #   model = prepare_model_for_kbit_training(model)  # 3. kbit prep
-#   moc.half()                                # 4. re-cast AFTER kbit prep
+#   # 4. keep MoC float32 — do NOT moc.half() (fp16 training is unstable)
 #   model = get_peft_model(model, lora_cfg)   # 5. PEFT wrapping LAST
 # ============================================================
 
@@ -108,41 +108,39 @@ class MixtureOfConnectors(nn.Module):
                                        HAS gradient — needed for L_lb.
                 k_star (int):          Selected expert index ∈ {0, 1, 2, 3}.
         """
-        # ---- Dtype split: router/pooler vs. experts --------------------------------
-        # The router and pooler must stay in float32 during training to prevent
-        # float16 overflow after the first optimizer step.  (moc.half() converts
-        # all experts to float16 for memory efficiency, then train_moc.py calls
-        # moc.router.float() / moc.pooler.float() to keep them in float32.)
-        # The expert forward still runs in float16 (the expert's own dtype).
-        #
-        # _router_dtype: dtype of router/pooler params (float32 in training)
-        # _expert_dtype: dtype of expert params (float16 after moc.half())
-        _router_dtype = self.router.W1.weight.dtype
-        _expert_dtype = next(self.experts[1].parameters()).dtype
-        # -----------------------------------------------------------------------
+        # ---- Numerical-stability note ----------------------------------------
+        # The trainable MoC modules (router, pooler, E2/E3/E4) are kept in
+        # float32 during training.  Training these small custom modules in
+        # float16 overflows within a few optimizer steps and produces NaN: the
+        # router output goes NaN right after the first step, which makes L_lb
+        # NaN, and a NaN gradient then poisons every parameter through
+        # clip_grad_norm.  The experts are dtype-transparent — each casts Z_V
+        # (and q for E4) to its own parameter dtype internally and returns the
+        # output in Z_V's original dtype — so float32 modules interoperate
+        # cleanly with the float16 LLM pipeline.  E1 wraps the frozen float16
+        # mm_projector and is left in float16.
+        # ----------------------------------------------------------------------
+        _router_dtype = self.router.W1.weight.dtype   # float32 in training
 
-        # Step 1: Pool question embeddings → single question vector q
-        # Cast question_embeddings to _router_dtype (float32) so the pooler
-        # dot-products stay in float32 and cannot overflow.
-        q = self.pooler(question_embeddings.to(dtype=_router_dtype))   # (d,) float32
+        # Step 1: Pool question embeddings → single question vector q.
+        # Cast question_embeddings to the pooler/router dtype (float32).
+        q = self.pooler(question_embeddings.to(dtype=_router_dtype))   # (d,)
 
-        # Step 2: Route via question vector (float32 — no overflow risk)
-        r = self.router(q)                            # (K,) float32
+        # Step 2: Route via the question vector.
+        r = self.router(q)                            # (K,)
 
-        # Step 3: Straight-through expert selection
+        # Step 3: Straight-through expert selection.
         # argmax is applied to r.detach() so no gradient flows through it.
         # Gradients from L_lb flow back through r directly.
         k_star = torch.argmax(r.detach()).item()       # int, no gradient
 
-        # Step 4: Forward through selected expert (in _expert_dtype = float16)
-        # Z_V arrives as float16 from the vision tower; cast it to expert dtype
-        # (no-op when expert_dtype == float16, handles float32 at init/verify).
-        Z_V_exp = Z_V.to(dtype=_expert_dtype)
+        # Step 4: Forward through the selected expert.
+        # Z_V is passed as-is (float16 from the vision tower); each expert
+        # casts it to its own dtype internally and returns float16 output.
         if k_star == 3:
-            # E4 (QCGP) needs q; cast q to expert dtype for the gating op
-            V = self.experts[k_star](Z_V_exp, q.to(dtype=_expert_dtype))
+            V = self.experts[k_star](Z_V, q)          # E4 (QCGP) also needs q
         else:
-            V = self.experts[k_star](Z_V_exp)         # ExpertE1/2/3(Z_V)
+            V = self.experts[k_star](Z_V)             # ExpertE1/2/3(Z_V)
 
         # Store routing state for use in training loop (load-balancing loss)
         self._last_r      = r
@@ -230,7 +228,7 @@ if _try_import_llava():
             # Load model normally, then upgrade:
             tokenizer, base_model, ip, ctx = load_pretrained_model(...)
             model = upgrade_to_moc(base_model)
-            moc   = build_moc(model).to(device).half()
+            moc   = build_moc(model).to(device)   # keep float32 (no .half())
             model.set_moc(moc)
 
         After each forward pass, routing info is in:
@@ -247,8 +245,9 @@ if _try_import_llava():
             """
             Attach a built MixtureOfConnectors to this model.
 
-            The MoC must already be on the correct device and dtype
-            (typically .half() after .to(device)).
+            The MoC must already be on the correct device.  Keep the
+            trainable modules in float32 (do NOT call .half()) — the experts
+            are dtype-transparent and handle the float16 LLM boundary.
 
             Args:
                 moc (MixtureOfConnectors): The assembled MoC module.
@@ -499,15 +498,18 @@ def upgrade_to_moc(model) -> "MoCLlavaForCausalLM":
         moc        = build_moc(model).to(dev)           # build before kbit prep
         model.set_moc(moc)
         model      = prepare_model_for_kbit_training(model)
-        moc.half()                                      # re-cast AFTER kbit prep
+        # keep MoC float32 — do NOT moc.half() (fp16 training is unstable)
         model      = get_peft_model(model, lora_cfg)   # wraps in PeftModel
 
-    Why moc.half() comes after prepare_model_for_kbit_training:
+    Why MoC must stay float32 (do NOT call moc.half()):
         prepare_model_for_kbit_training upcasts every 1D parameter to float32
-        (for gradient-checkpointing numerical stability).  This includes MoC's
-        q_pool, router biases, etc.  Since the LLaVA forward operates in
-        float16 (bnb_4bit_compute_dtype=float16), the MoC must also be in
-        float16 — so we re-cast immediately after the kbit prep call.
+        for numerical stability.  The trainable MoC modules (router, pooler,
+        E2/E3/E4) must stay float32: training these small custom modules in
+        float16 overflows within a few optimizer steps and produces NaN.  The
+        experts are dtype-transparent (they cast Z_V to their own dtype and
+        return output in Z_V's dtype), so float32 modules interoperate cleanly
+        with the float16 LLaVA forward (bnb_4bit_compute_dtype=float16).  E1
+        wraps the frozen fp16 mm_projector and is left in fp16.
 
     Calling upgrade_to_moc AFTER get_peft_model does class surgery on the
     PeftModelForCausalLM shell, which has no self.model at its top level,
@@ -757,16 +759,16 @@ if __name__ == "__main__":
 
         # Step 1 & 2: upgrade class, build MoC, attach MoC
         model = upgrade_to_moc(base_model)
-        moc   = build_moc(model).to(DEVICE)   # .half() comes AFTER kbit prep
+        moc   = build_moc(model).to(DEVICE)   # keep float32 (no .half())
         model.set_moc(moc)
 
         # Step 3: prepare_model_for_kbit_training upcasts ALL 1D parameters
-        # (biases, layer norms, q_pool, router biases…) to float32 for
-        # gradient-checkpointing stability.  We re-cast MoC back to float16
-        # immediately after because the LLaVA forward runs in float16
-        # (bnb_4bit_compute_dtype=float16) and mismatched dtypes cause errors.
+        # (biases, layer norms, q_pool, router biases…) to float32.  We leave
+        # the trainable MoC modules in float32 — training them in float16 is
+        # numerically unstable (overflows to NaN within a few steps).  The
+        # experts are dtype-transparent, so float32 weights interoperate with
+        # the float16 LLaVA forward (bnb_4bit_compute_dtype=float16).
         model = prepare_model_for_kbit_training(model)
-        moc.half()   # override the float32 upcast for MoC params
 
         # Step 4: wrap in PEFT (must be last)
         lora_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,

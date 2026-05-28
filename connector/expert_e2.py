@@ -11,7 +11,7 @@
 #
 # USAGE IN TRAINING:
 #   from connector.expert_e2 import ExpertE2
-#   e2 = ExpertE2(d_v=1024, d=4096, K=32).to(device).half()
+#   e2 = ExpertE2(d_v=1024, d=4096, K=32).to(device)   # keep float32 (no .half())
 #   V = e2(Z_V)   # (576, 1024) → (32, 4096)
 # ============================================================
 
@@ -89,6 +89,14 @@ class ExpertE2(nn.Module):
             torch.Tensor: Compressed visual tokens,
                           shape (K, d) = (32, 4096).
         """
+        # Dtype-transparent: this module is trained in float32 for numerical
+        # stability, but the vision tower feeds float16 patches.  Cast Z_V to
+        # the module's own dtype on the way in, and cast the output back to
+        # Z_V's original dtype on the way out.  Training E2 directly in float16
+        # overflows within a few optimizer steps and produces NaN.
+        in_dtype = Z_V.dtype
+        Z_V = Z_V.to(self.W_K.weight.dtype)
+
         # Project patches to key and value in LLM embedding space
         K_v = self.W_K(Z_V)   # (N, d)
         V_v = self.W_V(Z_V)   # (N, d)
@@ -103,7 +111,7 @@ class ExpertE2(nn.Module):
 
         # scale_factor = 1/sqrt(d) is applied internally
         out = F.scaled_dot_product_attention(q, k, v)   # (1, K, d)
-        return out.squeeze(0)   # (K, d) = (32, 4096)
+        return out.squeeze(0).to(in_dtype)   # (K, d) = (32, 4096)
 
 
 if __name__ == "__main__":

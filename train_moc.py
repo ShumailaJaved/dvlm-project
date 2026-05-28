@@ -345,7 +345,7 @@ def train(args):
     Steps:
       1. Load LLaVA-1.5-7B in 4-bit NF4.
       2. Class surgery: upgrade_to_moc → build_moc → set_moc.
-      3. QLoRA: prepare_model_for_kbit_training → moc.half() → get_peft_model.
+      3. QLoRA: prepare_model_for_kbit_training → keep MoC float32 → get_peft_model.
       4. Load ScienceQA.
       5. Train with L_total = L_CE + LAMBDA_LB * L_lb.
          Log: step-loss, L_lb, per-expert counts, τ_g every 50 steps.
@@ -397,7 +397,7 @@ def train(args):
     #   build_moc        (has direct mm_projector access here)
     #   set_moc          (attach)
     #   prepare_model_for_kbit_training
-    #   moc.half()       (re-cast AFTER kbit prep, which upcasts fp16 → fp32)
+    #   keep MoC in float32 (do NOT moc.half() — fp16 training is unstable)
     #   get_peft_model   (wraps in PeftModel — must be LAST)
     print("Setting up MoC …")
     model = upgrade_to_moc(base_model)
@@ -407,9 +407,19 @@ def train(args):
     # ---- 3. Apply QLoRA ------------------------------------------------------
     print("Applying QLoRA …")
     model = prepare_model_for_kbit_training(model)
-    moc.half()         # convert all MoC params to float16 (matches LLM compute dtype)
-    moc.router.float() # but keep router in float32 — float16 overflows after first step
-    moc.pooler.float() # keep pooler in float32 for the same reason
+    # Keep the trainable MoC modules (router, pooler, E2/E3/E4) in float32.
+    # prepare_model_for_kbit_training already upcast them; do NOT call
+    # moc.half() — training these small custom modules in float16 overflows
+    # within a few steps and produces NaN (router → NaN after the first
+    # optimizer step → L_lb NaN → a NaN gradient poisons every parameter via
+    # clip_grad_norm).  The experts are dtype-transparent, so float32 weights
+    # interoperate with the float16 LLM.  E1 wraps the frozen fp16 mm_projector
+    # and stays fp16; everything else is float32.
+    moc.experts[1].float()   # E2 (Q-Former)
+    moc.experts[2].float()   # E3 (global token)
+    moc.experts[3].float()   # E4 (QCGP)
+    moc.router.float()
+    moc.pooler.float()
 
     lora_cfg = LoraConfig(
         r=16, lora_alpha=32, lora_dropout=0.05,

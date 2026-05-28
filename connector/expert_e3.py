@@ -11,7 +11,7 @@
 #
 # USAGE IN TRAINING:
 #   from connector.expert_e3 import ExpertE3
-#   e3 = ExpertE3(d_v=1024, d=4096).to(device).half()
+#   e3 = ExpertE3(d_v=1024, d=4096).to(device)   # keep float32 (no .half())
 #   V = e3(Z_V)   # (576, 1024) → (1, 4096)
 # ============================================================
 
@@ -80,6 +80,13 @@ class ExpertE3(nn.Module):
                           The leading dimension is required by the LLM
                           (sequence of length 1).
         """
+        # Dtype-transparent: this module is trained in float32 for numerical
+        # stability, but the vision tower feeds float16 patches.  Cast in/out
+        # so float32 weights interoperate with the float16 pipeline.  Training
+        # E3 directly in float16 overflows and produces NaN.
+        in_dtype = Z_V.dtype
+        Z_V = Z_V.to(self.W_E3.weight.dtype)
+
         # --- Step 1: score each patch against the attention vector w ----------
         # Z_V @ w  →  (N, d_v) @ (d_v,)  =  (N,)
         # Divide by sqrt(d_v) to keep scores well-scaled
@@ -95,7 +102,7 @@ class ExpertE3(nn.Module):
 
         # --- Step 4: project to LLM space, add sequence dimension -------------
         out = self.W_E3(c)                              # (d,)
-        return out.unsqueeze(0)                         # (1, d)
+        return out.unsqueeze(0).to(in_dtype)            # (1, d)
 
 
 if __name__ == "__main__":

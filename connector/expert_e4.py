@@ -11,7 +11,7 @@
 #
 # USAGE IN TRAINING:
 #   from connector.expert_e4 import ExpertE4
-#   e4 = ExpertE4(d_v=1024, d=4096, d_k=256).to(device).half()
+#   e4 = ExpertE4(d_v=1024, d=4096, d_k=256).to(device)   # keep float32 (no .half())
 #   V  = e4(Z_V, q)   # (576, 1024), (4096,) → (576, 4096)
 #   # After forward, e4._last_alpha is available for heatmap vis (Task E-3)
 # ============================================================
@@ -126,6 +126,16 @@ class ExpertE4(nn.Module):
             torch.Tensor: Gated and projected visual tokens,
                           shape (N, d) = (576, 4096).
         """
+        # Dtype-transparent: this module is trained in float32 for numerical
+        # stability, but Z_V (float16, from the vision tower) and q (float32,
+        # from the pooler/router) may arrive in different dtypes.  Cast both to
+        # the module's own dtype, and cast the output back to Z_V's dtype.
+        # Training E4 directly in float16 overflows and produces NaN.
+        in_dtype = Z_V.dtype
+        w_dtype  = self.W_E4.weight.dtype
+        Z_V = Z_V.to(w_dtype)
+        q   = q.to(w_dtype)
+
         # ---------------------------------------------------------------
         # Step 1: Project and L2-normalize the question vector
         # L2 normalization AFTER projection bridges the modality gap
@@ -174,7 +184,7 @@ class ExpertE4(nn.Module):
         self._last_alpha = alpha.detach()
         self._last_g     = g.detach()
 
-        return output
+        return output.to(in_dtype)
 
 
 if __name__ == "__main__":

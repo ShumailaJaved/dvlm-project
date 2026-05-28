@@ -11,7 +11,7 @@
 #
 # USAGE IN TRAINING:
 #   from connector.router import MoCRouter
-#   router = MoCRouter(d=4096, d_r=64, K=4).to(device).half()
+#   router = MoCRouter(d=4096, d_r=64, K=4).to(device)   # keep float32 (no .half())
 #   r = router(q)                            # (4,) softmax probs
 #   k_star = torch.argmax(r.detach()).item() # STE — no grad through argmax
 # ============================================================
