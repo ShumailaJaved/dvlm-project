@@ -24,16 +24,6 @@ env/
 # === Jupyter Notebooks ===
 .ipynb_checkpoints/
 
-# === Model Checkpoints & Large Files ===
-checkpoints/
-*.bin
-*.safetensors
-*.pt
-*.pth
-*.ckpt
-
-# === Data ===
-data/
 
 # === LaTeX Build Artifacts ===
 paper/*.aux
