@@ -57,6 +57,30 @@ WARMUP_FRAC    = 0.03   # fraction of total steps used for linear LR warmup
 
 
 # ============================================================
+# Transformers ≥ 4.46 compatibility patch
+# ============================================================
+
+def patch_generate_compat(model) -> None:
+    """
+    Transformers ≥ 4.46 passes 'cache_position' (and sometimes
+    'num_logits_to_keep') to model.forward() during generation.
+    LLaVA's forward() signature does not accept these kwargs → TypeError.
+
+    Wraps prepare_inputs_for_generation on the model instance to strip
+    the unknown keys before they reach forward().
+    """
+    _orig = model.prepare_inputs_for_generation
+
+    def _compat(*args, **kwargs):
+        out = _orig(*args, **kwargs)
+        out.pop("cache_position",     None)
+        out.pop("num_logits_to_keep", None)
+        return out
+
+    model.prepare_inputs_for_generation = _compat
+
+
+# ============================================================
 # Data utilities
 # ============================================================
 
@@ -622,6 +646,7 @@ def train(args):
     # -------------------------------------------------------------------------
 
     model.print_trainable_parameters()
+    patch_generate_compat(model)   # strip cache_position / num_logits_to_keep
 
     # ---- 4. Dataset ----------------------------------------------------------
     print("Loading ScienceQA …")

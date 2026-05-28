@@ -36,6 +36,32 @@ ANSWER_LETTERS = "ABCDE"
 
 
 # ============================================================
+# Transformers ≥ 4.46 compatibility patch
+# ============================================================
+
+def patch_generate_compat(model) -> None:
+    """
+    Transformers ≥ 4.46 adds 'cache_position' (and sometimes
+    'num_logits_to_keep') to the model_inputs dict that is forwarded to
+    model.forward() during generation.  LLaVA's forward() signature does
+    not accept these kwargs and raises TypeError.
+
+    Fix: wrap prepare_inputs_for_generation on the model instance to strip
+    the unknown keys before they reach forward().  Patching the instance
+    (not the class) keeps the change local to this model object.
+    """
+    _orig = model.prepare_inputs_for_generation
+
+    def _compat(*args, **kwargs):
+        out = _orig(*args, **kwargs)
+        out.pop("cache_position",      None)
+        out.pop("num_logits_to_keep",  None)
+        return out
+
+    model.prepare_inputs_for_generation = _compat
+
+
+# ============================================================
 # Helpers (duplicated from train_single.py to keep script self-contained)
 # ============================================================
 
@@ -164,6 +190,7 @@ def main(args):
         )
     model = PeftModel.from_pretrained(base_model, args.ckpt_dir)
     model.eval()
+    patch_generate_compat(model)   # strip cache_position / num_logits_to_keep
     print("Checkpoint loaded.")
 
     # ---- 4. Load ScienceQA test split ---------------------------------------
