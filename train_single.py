@@ -85,7 +85,22 @@ def patch_generate_compat(_model=None) -> None:
         kwargs.pop("num_logits_to_keep", None)
         return _orig_forward(self, *args, **kwargs)
 
+    # Restore the original forward's explicit parameter names (attention_mask,
+    # input_ids, …) via __wrapped__, so transformers' _validate_model_kwargs
+    # still sees them with inspect.signature.  Without this the wrapper's
+    # (*args, **kwargs) signature causes transformers ≥ 4.46 to reject
+    # 'attention_mask' as an unknown model kwarg.
+    import functools
+    functools.update_wrapper(_forward_compat, _orig_forward)
+
     LlavaLlamaForCausalLM.forward = _forward_compat
+
+    # Belt-and-suspenders: silence _validate_model_kwargs on this class only.
+    # In some transformers/PEFT version combos the __wrapped__ trick alone is
+    # not enough (the validator checks prepare_inputs_for_generation, not forward).
+    LlavaLlamaForCausalLM._validate_model_kwargs = \
+        lambda self, model_kwargs: None   # no-op — skip kwarg validation
+
     LlavaLlamaForCausalLM._transformers_compat_patched = True
 
 
