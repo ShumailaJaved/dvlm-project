@@ -166,10 +166,13 @@ def evaluate(model, hf_dataset, tokenizer, image_processor,
             # attention_mask.new_ones(...) in _update_model_kwargs_for_generation
             # and crashes if attention_mask is None.
             attn_mask = torch.ones_like(ids)
+            MAX_NEW = 3
             out  = model.generate(inputs=ids, images=imgs,
                                    attention_mask=attn_mask,
-                                   max_new_tokens=3, do_sample=False)
-            new_tokens = out[0][ids.shape[1]:]
+                                   max_new_tokens=MAX_NEW, do_sample=False)
+            # LLaVA routes through inputs_embeds so out[0] may not contain
+            # input tokens at the front — slice from the tail instead.
+            new_tokens = out[0][-MAX_NEW:]
             pred = extract_answer(tokenizer.decode(new_tokens, skip_special_tokens=True))
 
             if with_img:
