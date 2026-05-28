@@ -1,0 +1,9 @@
+{
+  "acc_image": 0.656,
+  "acc_text": 0.382,
+  "delta_v": 0.274,
+  "expert": "E1",
+  "n_eval": 500,
+  "ckpt_dir": "results/single/ckpt_E1",
+  "peak_vram_gb": 12.4
+}
