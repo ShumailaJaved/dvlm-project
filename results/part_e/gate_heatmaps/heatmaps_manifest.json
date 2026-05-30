@@ -1,0 +1,50 @@
+[
+  {
+    "idx": 15,
+    "type": "spatial",
+    "question": "Which continent is highlighted?",
+    "alpha_max": 0.00207,
+    "alpha_argmax_patch": 41,
+    "file": "heatmap_spatial_1_idx15.png"
+  },
+  {
+    "idx": 18,
+    "type": "spatial",
+    "question": "Select the bird below.",
+    "alpha_max": 0.00206,
+    "alpha_argmax_patch": 413,
+    "file": "heatmap_spatial_2_idx18.png"
+  },
+  {
+    "idx": 28,
+    "type": "spatial",
+    "question": "Which ocean is highlighted?",
+    "alpha_max": 0.00202,
+    "alpha_argmax_patch": 37,
+    "file": "heatmap_spatial_3_idx28.png"
+  },
+  {
+    "idx": 31,
+    "type": "spatial",
+    "question": "Look at the models of molecules below. Select the elementary substance.",
+    "alpha_max": 0.00199,
+    "alpha_argmax_patch": 411,
+    "file": "heatmap_spatial_4_idx31.png"
+  },
+  {
+    "idx": 38,
+    "type": "spatial",
+    "question": "Which country is highlighted?",
+    "alpha_max": 0.00204,
+    "alpha_argmax_patch": 364,
+    "file": "heatmap_spatial_5_idx38.png"
+  },
+  {
+    "idx": 0,
+    "type": "counter",
+    "question": "Which of the following could Gordon's test show?",
+    "alpha_max": 0.00209,
+    "alpha_argmax_patch": 7,
+    "file": "heatmap_counterexample_idx0.png"
+  }
+]
