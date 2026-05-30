@@ -1,0 +1,11 @@
+{
+  "tau_g_init": 0.9996,
+  "tau_g_final": 0.9985,
+  "tau_g_min": 0.9979,
+  "tau_g_max": 0.9996,
+  "tau_g_delta": -0.0011,
+  "direction": "decreased (softer gating)",
+  "stabilized_before_end": true,
+  "n_logged_points": 38,
+  "note": "tau_g moved only marginally from its 1.0 init, so the model settled near-neutral gating sharpness on ScienceQA: the softmax-over-576-patches relevance was kept close to the init temperature rather than driven sharp or diffuse."
+}

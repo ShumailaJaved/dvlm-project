@@ -1,0 +1,122 @@
+{
+  "n": 2017,
+  "overall": {
+    "acc_image": 0.6554,
+    "acc_text": 0.6059,
+    "delta_v": 0.0496
+  },
+  "by_subject": {
+    "language science": {
+      "n": 44,
+      "acc_image": 0.7045,
+      "acc_text": 0.6591,
+      "delta_v": 0.0455
+    },
+    "natural science": {
+      "n": 1209,
+      "acc_image": 0.627,
+      "acc_text": 0.5757,
+      "delta_v": 0.0513
+    },
+    "social science": {
+      "n": 764,
+      "acc_image": 0.6976,
+      "acc_text": 0.6505,
+      "delta_v": 0.0471
+    }
+  },
+  "by_topic": {
+    "biology": {
+      "n": 403,
+      "acc_image": 0.6998,
+      "acc_text": 0.7196,
+      "delta_v": -0.0199
+    },
+    "chemistry": {
+      "n": 94,
+      "acc_image": 0.4468,
+      "acc_text": 0.4149,
+      "delta_v": 0.0319
+    },
+    "civics": {
+      "n": 2,
+      "acc_image": 0.5,
+      "acc_text": 0.5,
+      "delta_v": 0.0
+    },
+    "earth-science": {
+      "n": 156,
+      "acc_image": 0.5833,
+      "acc_text": 0.5385,
+      "delta_v": 0.0449
+    },
+    "economics": {
+      "n": 71,
+      "acc_image": 0.1831,
+      "acc_text": 0.4225,
+      "delta_v": -0.2394
+    },
+    "geography": {
+      "n": 600,
+      "acc_image": 0.7833,
+      "acc_text": 0.7067,
+      "delta_v": 0.0767
+    },
+    "literacy-in-science": {
+      "n": 3,
+      "acc_image": 1.0,
+      "acc_text": 0.6667,
+      "delta_v": 0.3333
+    },
+    "physics": {
+      "n": 425,
+      "acc_image": 0.6282,
+      "acc_text": 0.4871,
+      "delta_v": 0.1412
+    },
+    "reading-comprehension": {
+      "n": 12,
+      "acc_image": 0.6667,
+      "acc_text": 0.75,
+      "delta_v": -0.0833
+    },
+    "science-and-engineering-practices": {
+      "n": 128,
+      "acc_image": 0.5703,
+      "acc_text": 0.5781,
+      "delta_v": -0.0078
+    },
+    "us-history": {
+      "n": 84,
+      "acc_image": 0.5357,
+      "acc_text": 0.4405,
+      "delta_v": 0.0952
+    },
+    "vocabulary": {
+      "n": 5,
+      "acc_image": 0.8,
+      "acc_text": 0.4,
+      "delta_v": 0.4
+    },
+    "word-study": {
+      "n": 4,
+      "acc_image": 0.25,
+      "acc_text": 0.75,
+      "delta_v": -0.5
+    },
+    "world-history": {
+      "n": 7,
+      "acc_image": 0.5714,
+      "acc_text": 0.7143,
+      "delta_v": -0.1429
+    },
+    "writing-strategies": {
+      "n": 23,
+      "acc_image": 0.7826,
+      "acc_text": 0.6522,
+      "delta_v": 0.1304
+    }
+  },
+  "max_delta_v_subject": "natural science",
+  "min_delta_v_subject": "language science"
+}

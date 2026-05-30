@@ -1,0 +1,18 @@
+{
+  "model": "E1 (best in Table E-1)",
+  "n_errors_total": 695,
+  "n_classified": 100,
+  "seed": 42,
+  "counts": {
+    "perception": 48,
+    "reasoning": 41,
+    "cot_rescue": 11
+  },
+  "fractions": {
+    "perception": 0.48,
+    "reasoning": 0.41,
+    "cot_rescue": 0.11
+  },
+  "papo_baseline_perception": 0.67,
+  "note": "Compared to PAPO's ~67% perception errors in RLVR-trained MLLMs, ScienceQA error mix on E1 is reported above. Perception = image ignored (text-only reproduces the wrong answer); reasoning = image used but conclusion wrong; cot_rescue = chain-of-thought flips it to correct."
+}

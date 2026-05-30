@@ -1,0 +1,19 @@
+{
+  "source": "routing_log_moc.csv (cumulative training-time selections)",
+  "final_step": 1900,
+  "counts": {
+    "E1": 9296,
+    "E2": 6234,
+    "E3": 8653,
+    "E4": 6257
+  },
+  "fractions": {
+    "E1": 0.3054,
+    "E2": 0.2048,
+    "E3": 0.2843,
+    "E4": 0.2056
+  },
+  "max_minus_min_frac": 0.1006,
+  "load_balanced": true,
+  "note": "Distribution is reasonably balanced (no collapse): the load-balancing loss kept all four experts in use. E1 and E3 are slightly preferred over E2 and E4. This is the trained router's behaviour measured on the training stream; a fresh test-set pass and the subject/length breakdowns are not recoverable because the trained router weights were not saved (LoRA-only checkpoint)."
+}

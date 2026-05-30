@@ -1,0 +1,802 @@
+[
+  {
+    "idx": 1886,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 323,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 88,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "perception"
+  },
+  {
+    "idx": 806,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 722,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 661,
+    "gt": "C",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 397,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 288,
+    "gt": "A",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1582,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "perception"
+  },
+  {
+    "idx": 258,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1727,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 1214,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 109,
+    "gt": "C",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 100,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "B",
+    "cot_pred": "C",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 273,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 637,
+    "gt": "D",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 688,
+    "gt": "D",
+    "pred_img": "C",
+    "pred_txt": "D",
+    "cot_pred": "C",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1470,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 1762,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 95,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1632,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 570,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1923,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1989,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 1208,
+    "gt": "D",
+    "pred_img": "A",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 644,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1299,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1717,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 815,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 24,
+    "gt": "D",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 471,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 1978,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 991,
+    "gt": "A",
+    "pred_img": "D",
+    "pred_txt": "D",
+    "cot_pred": "A",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 1925,
+    "gt": "A",
+    "pred_img": "D",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 460,
+    "gt": "D",
+    "pred_img": "A",
+    "pred_txt": "D",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 618,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 979,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1993,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 271,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1105,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "perception"
+  },
+  {
+    "idx": 278,
+    "gt": "C",
+    "pred_img": "D",
+    "pred_txt": "C",
+    "cot_pred": "D",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1046,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1005,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1770,
+    "gt": "D",
+    "pred_img": "A",
+    "pred_txt": "D",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 776,
+    "gt": "B",
+    "pred_img": "D",
+    "pred_txt": "C",
+    "cot_pred": "D",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 158,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1332,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1556,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 349,
+    "gt": "D",
+    "pred_img": "A",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1102,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 237,
+    "gt": "D",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1600,
+    "gt": "C",
+    "pred_img": "D",
+    "pred_txt": "C",
+    "cot_pred": "D",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 863,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 1833,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1054,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1675,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 556,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 207,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "C",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 162,
+    "gt": "C",
+    "pred_img": "B",
+    "pred_txt": "C",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 676,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 854,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 239,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1966,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 287,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "C",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1887,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1903,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1318,
+    "gt": "B",
+    "pred_img": "D",
+    "pred_txt": "C",
+    "cot_pred": "D",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1058,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 476,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "D",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1071,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1030,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 599,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 779,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 211,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 504,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1548,
+    "gt": "C",
+    "pred_img": "B",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 2001,
+    "gt": "B",
+    "pred_img": "D",
+    "pred_txt": "B",
+    "cot_pred": "D",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 480,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1336,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1103,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 791,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1615,
+    "gt": "C",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 642,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 951,
+    "gt": "E",
+    "pred_img": "C",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 187,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "C",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 677,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1972,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 931,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  },
+  {
+    "idx": 1167,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "A",
+    "cot_pred": "C",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 780,
+    "gt": "B",
+    "pred_img": "C",
+    "pred_txt": "A",
+    "cot_pred": "C",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 202,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "B",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 607,
+    "gt": "D",
+    "pred_img": "C",
+    "pred_txt": "D",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1650,
+    "gt": "B",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 929,
+    "gt": "E",
+    "pred_img": "A",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "perception"
+  },
+  {
+    "idx": 608,
+    "gt": "C",
+    "pred_img": "A",
+    "pred_txt": "C",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1451,
+    "gt": "A",
+    "pred_img": "D",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "cot_rescue"
+  },
+  {
+    "idx": 1155,
+    "gt": "E",
+    "pred_img": "D",
+    "pred_txt": "A",
+    "cot_pred": "A",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 1331,
+    "gt": "C",
+    "pred_img": "B",
+    "pred_txt": "A",
+    "cot_pred": "B",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 412,
+    "gt": "A",
+    "pred_img": "C",
+    "pred_txt": "A",
+    "cot_pred": "C",
+    "bucket": "reasoning"
+  },
+  {
+    "idx": 777,
+    "gt": "A",
+    "pred_img": "B",
+    "pred_txt": "B",
+    "cot_pred": "B",
+    "bucket": "perception"
+  }
+]
