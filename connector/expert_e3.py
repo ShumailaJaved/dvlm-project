@@ -87,22 +87,34 @@ class ExpertE3(nn.Module):
         in_dtype = Z_V.dtype
         Z_V = Z_V.to(self.W_E3.weight.dtype)
 
-        # --- Step 1: score each patch against the attention vector w ----------
-        # Z_V @ w  →  (N, d_v) @ (d_v,)  =  (N,)
-        # Divide by sqrt(d_v) to keep scores well-scaled
-        scores  = Z_V @ self.w / math.sqrt(self.d_v)   # (N,)
+        # Z_V can arrive unbatched (N, d_v) — when MoC iterates per sample —
+        # or batched (B, N, d_v) — when E3 replaces LLaVA's mm_projector in
+        # single-expert mode and encode_images hands it the full batch.
+        # Treat the patch dimension as dim=-2 so the same code path covers
+        # both.  An earlier version used `weights @ Z_V` and `unsqueeze(0)`,
+        # which silently produced a 4-D tensor on batched input and crashed
+        # downstream in `torch.cat(cur_new_input_embeds)` with
+        # "Tensors must have same number of dimensions: got 2 and 3".
 
-        # --- Step 2: softmax over N patches → attention weights ---------------
-        # weights[i] ≥ 0 and sum(weights) == 1
-        weights = F.softmax(scores, dim=0)              # (N,)
+        # --- Step 1: score each patch against the attention vector w ----------
+        # Z_V @ w broadcasts over any leading batch dims:
+        #   (N, d_v) @ (d_v,)        -> (N,)
+        #   (B, N, d_v) @ (d_v,)     -> (B, N)
+        scores  = (Z_V @ self.w) / math.sqrt(self.d_v)  # (..., N)
+
+        # --- Step 2: softmax over the N (patch) dimension ---------------------
+        weights = F.softmax(scores, dim=-1)             # (..., N)
 
         # --- Step 3: weighted sum of patch embeddings -------------------------
-        # weights @ Z_V  →  (N,) @ (N, d_v)  =  (d_v,)
-        c = weights @ Z_V                               # (d_v,)
+        # einsum keeps the same expression for both unbatched and batched Z_V.
+        c = torch.einsum('...n,...nd->...d', weights, Z_V)   # (..., d_v)
 
-        # --- Step 4: project to LLM space, add sequence dimension -------------
-        out = self.W_E3(c)                              # (d,)
-        return out.unsqueeze(0).to(in_dtype)            # (1, d)
+        # --- Step 4: project to LLM space, add the sequence dimension ---------
+        # unsqueeze(-2) inserts the length-1 sequence axis just before d:
+        #   (d,)    -> (1, d)
+        #   (B, d)  -> (B, 1, d)
+        out = self.W_E3(c)                              # (..., d)
+        return out.unsqueeze(-2).to(in_dtype)           # (..., 1, d)
 
 
 if __name__ == "__main__":
