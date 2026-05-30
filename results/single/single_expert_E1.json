@@ -5,5 +5,6 @@
   "expert": "E1",
   "n_eval": 500,
   "ckpt_dir": "results/single/ckpt_E1",
+  "train_time_h": 1.49,
   "peak_vram_gb": 12.4
 }
