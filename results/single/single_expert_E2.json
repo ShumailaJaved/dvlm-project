@@ -1,0 +1,8 @@
+{
+  "acc_image": 0.34,
+  "acc_text": 0.33,
+  "delta_v": 0.010000000000000009,
+  "expert": "E2",
+  "train_time_h": 0.58,
+  "peak_vram_gb": 12.3
+}
