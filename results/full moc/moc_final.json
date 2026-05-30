@@ -1,0 +1,15 @@
+{
+  "acc_image": 0.622,
+  "acc_text": 0.702,
+  "delta_v": -0.08,
+  "train_time_h": 9.49,
+  "peak_vram_gb": 9.7,
+  "best_val_acc": 0.738,
+  "best_step": 750,
+  "expert_counts_total": [
+    9474,
+    6392,
+    8797,
+    6427
+  ]
+}
